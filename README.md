@@ -125,9 +125,48 @@ the v3 binary instead requires `solana program-v4 deploy`.
 `MIN_DURATION_SECONDS` is 60 — a sanity floor only. Real terms are set by
 lenders per offer.
 
+## Tests
+
+```bash
+./run-tests.sh                       # behaviour — 12 tests
+./run-tests.sh tests/invariants.ts   # invariants — 4 tests
+```
+
+Each suite initialises the `Config` singleton, so they run on separate ledgers.
+
+`tests/memebook.ts` checks that each instruction does what it says.
+`tests/invariants.ts` checks the properties that must hold in *every* reachable
+state, because violating one of those makes the protocol insolvent rather than
+merely wrong:
+
+| | Invariant |
+|---|---|
+| **I1** | an open offer's vault holds exactly its undrawn principal |
+| **I2** | an active loan's vault holds exactly its recorded collateral |
+| **I3** | `principal_total == principal_available + everything ever drawn` |
+| **I4** | tokens are conserved — the program never mints or burns |
+
+All four are asserted after *every* state transition in a randomised operation
+sequence, not just at the end. The generator is seeded, so any failure is
+reproducible:
+
+```bash
+FUZZ_OPS=500 FUZZ_SEED=42 ./run-tests.sh tests/invariants.ts
+```
+
+The suite also pins down three specific attacks: splitting one draw into many to
+post less collateral (it costs more, never less — pro-rata collateral rounds
+up), settling somebody else's position, and claiming an already-claimed loan.
+
 ## Status
 
-The program is complete and its behaviour is covered by 12 passing integration
-tests, including the maturity and default paths. **It has not been audited, and
-there are no fuzz or invariant tests yet.** Passing tests are not a safety
-argument. Do not put real money behind this without a professional audit.
+The program is complete, with 12 behavioural and 4 invariant tests passing,
+including the maturity and default paths.
+
+**It has not been audited.** Passing tests are not a safety argument — they
+show the failures I thought to look for, not the ones I did not. Do not put
+real money behind this without a professional audit.
+
+Known gaps before mainnet: no Rust-level fuzzing (Trident) yet, upgrade
+authority and config admin must be moved to a multisig, and the indexer's
+per-signature backfill should sit behind a Geyser or webhook stream at volume.

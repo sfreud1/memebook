@@ -10,7 +10,7 @@ export PATH="$HOME/.cargo/bin:$HOME/.local/share/solana/install/active_release/b
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$HERE"
 
-LEDGER="${TMPDIR:-/tmp}/memebook-ledger"
+LEDGER="${TMPDIR:-/tmp}/memebook-ledger-$(basename "${1:-memebook}" .ts)"
 RPC="http://127.0.0.1:8899"
 
 cleanup() { [[ -n "${VALIDATOR_PID:-}" ]] && kill "$VALIDATOR_PID" 2>/dev/null || true; }
@@ -46,4 +46,6 @@ solana program deploy target/deploy/memebook.so \
 echo "==> running suite"
 export ANCHOR_PROVIDER_URL="$RPC"
 export ANCHOR_WALLET="$HOME/.config/solana/id.json"
-npx ts-mocha -p ./tsconfig.json -t 1000000 tests/memebook.ts
+# Each suite initialises the Config singleton, so they need separate ledgers.
+# Pass a file to run just that one; default is the behavioural suite.
+npx ts-mocha -p ./tsconfig.json -t 1000000 "${1:-tests/memebook.ts}"
