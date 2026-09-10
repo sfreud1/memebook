@@ -1,0 +1,133 @@
+# memebook
+
+Fixed-term, oracle-free, liquidation-free peer-to-peer lending against
+long-tail Solana tokens.
+
+A lender posts an offer — *this collateral mint, this much principal, this
+ratio, this rate, this duration*. A borrower draws against it, in full or in
+part, and their collateral goes into a per-loan escrow PDA. Nothing marks the
+position to market for the life of the loan. At maturity the borrower either
+repays principal plus a fixed interest amount and takes their collateral back,
+or they walk away and the lender claims the collateral token itself.
+
+**There is no price feed anywhere in the program.** That is the central design
+decision. The assets this targets have thin, manipulable liquidity, and oracle
+manipulation is what has historically drained lending protocols that tried to
+mark them to market. Risk is priced once, by a human, when the offer is written.
+
+## Layout
+
+```
+programs/memebook/   Anchor program — the only authoritative state
+indexer/             Event stream -> Postgres projection + read API
+app/                 Next.js frontend
+scripts/seed.ts      Populates a local validator with a demo book
+run-tests.sh         Fresh ledger, build, deploy, full suite
+```
+
+## Why an indexer sits in the middle
+
+The frontend never calls an RPC node to read. `getProgramAccounts` over a
+growing offer book is precisely the query that collapses under traffic, so the
+program emits an event on every state transition, the indexer projects those
+into indexed tables, and the UI reads a normal HTTP API. The RPC connection in
+the browser exists only to sign and send transactions.
+
+Projections are idempotent and the raw event log is retained, so a projection
+bug is fixed by replaying `events` rather than re-hitting the chain.
+
+`PGlite` is the default database so the thing runs with no install. Set
+`DATABASE_URL` and the identical SQL runs against a real Postgres.
+
+## Running it locally
+
+Three processes. Terminal 1 — chain, program and demo data:
+
+```bash
+./run-tests.sh          # optional: proves the program works first
+```
+
+```bash
+solana-test-validator --reset --quiet --ledger /tmp/memebook-ledger
+```
+
+```bash
+solana program deploy target/deploy/memebook.so \
+  --program-id target/deploy/memebook-keypair.json --url http://127.0.0.1:8899
+ANCHOR_PROVIDER_URL=http://127.0.0.1:8899 \
+ANCHOR_WALLET=~/.config/solana/id.json npx tsx scripts/seed.ts
+```
+
+Terminal 2 — indexer + API on `:8080`:
+
+```bash
+cd indexer && RPC_URL=http://127.0.0.1:8899 yarn start
+```
+
+Terminal 3 — frontend on `:3000`:
+
+```bash
+cd app && yarn dev
+```
+
+## Economics
+
+Interest is simple, fixed at accept time, and never accrues:
+
+```
+interest = ceil(principal * apr_bps * duration_seconds / (10_000 * 31_536_000))
+```
+
+Partial draws take pro-rata collateral, rounded **up**, so an offer cannot be
+shaved by slicing it into dust loans. Fees round **down**, always in the user's
+favour.
+
+Three protocol fees, all configurable, all hard-capped in the program so a
+compromised admin key cannot confiscate a position:
+
+| Fee | Default | Cap | Paid by |
+|---|---|---|---|
+| Origination | 10% of interest | 30% | borrower, deducted from disbursed principal |
+| Interest | 5% of interest | 30% | lender, skimmed at repayment |
+| Default | 0.1% of collateral | 1% | lender, on claiming a defaulted loan |
+
+That is ~15% of interest to the protocol. Jupiter's Offerbook takes 35%.
+
+## Security decisions worth knowing
+
+**Collateral mints are screened.** Token-2022's `PermanentDelegate` lets a mint
+authority transfer escrowed collateral straight out from under the lender;
+`TransferHook` hands arbitrary code a CPI on every move; `TransferFeeConfig`
+means the amount that arrives is not the amount sent. These and several others
+are rejected at `create_offer`. Every transfer additionally measures a real
+balance delta rather than trusting the instruction argument.
+
+**A lender cannot force a default.** If the lender's principal token account
+could go missing before maturity, repayment would have no destination and the
+collateral would fall to them for free. `repay` creates it if needed.
+
+**Pausing cannot strand collateral.** The pause flag blocks new offers and new
+loans. `repay` and `claim_default` stay live in every state.
+
+**Admin handover is two-step.** A typo in `propose_admin` cannot brick the
+protocol; the key only takes effect once the new holder signs for it.
+
+**Rent follows whoever paid it.** Defaulting costs the borrower their
+collateral, not the rent they fronted on the loan and vault accounts.
+
+## Toolchain notes
+
+Anchor 1.2 shells `anchor test` out to `surfpool`, and `cargo-build-sbf`
+emits sBPF v3, which the upgradeable loader rejects. `run-tests.sh` therefore
+drives `solana-test-validator` directly and builds with `--arch v0`. Deploying
+the v3 binary instead requires `solana program-v4 deploy`.
+
+`MIN_DURATION_SECONDS` is 60 — a sanity floor only. Real terms are set by
+lenders per offer.
+
+## Status
+
+The program is complete and its behaviour is covered by 12 passing integration
+tests, including the maturity and default paths. **It has not been audited, and
+there are no fuzz or invariant tests yet.** Passing tests are not a safety
+argument. Do not put real money behind this without a professional audit.

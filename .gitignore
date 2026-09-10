@@ -1,0 +1,25 @@
+# rust / anchor
+target/
+**/*.rs.bk
+test-ledger/
+
+# node
+node_modules/
+.yarn/
+*.log
+
+# next
+app/.next/
+app/out/
+app/next-env.d.ts
+
+# indexer local database
+indexer/.data/
+indexer/dist/
+
+# env
+.env
+.env.local
+
+# os
+.DS_Store

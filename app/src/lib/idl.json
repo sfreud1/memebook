@@ -1,0 +1,1998 @@
+{
+  "address": "GGVLRegjz8K7op4KzJELS8GpEqHHCv7XagZBkEpCvsjh",
+  "metadata": {
+    "name": "memebook",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Fixed-term, oracle-free, liquidation-free P2P lending for long-tail SPL tokens"
+  },
+  "instructions": [
+    {
+      "name": "accept_admin",
+      "discriminator": [
+        112,
+        42,
+        45,
+        90,
+        116,
+        181,
+        13,
+        170
+      ],
+      "accounts": [
+        {
+          "name": "pending_admin",
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "accept_offer",
+      "docs": [
+        "Draw `draw_amount` of principal against an open offer, locking the",
+        "pro-rata collateral for the offer's full duration."
+      ],
+      "discriminator": [
+        227,
+        82,
+        234,
+        131,
+        1,
+        18,
+        48,
+        2
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer.lender",
+                "account": "Offer"
+              },
+              {
+                "kind": "account",
+                "path": "offer.offer_id",
+                "account": "Offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "arg",
+                "path": "loan_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "principal_mint",
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "collateral_mint",
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan_collateral_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower_collateral_account",
+          "writable": true
+        },
+        {
+          "name": "borrower_principal_account",
+          "writable": true
+        },
+        {
+          "name": "fee_recipient"
+        },
+        {
+          "name": "fee_principal_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "fee_recipient"
+              },
+              {
+                "kind": "account",
+                "path": "principal_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "principal_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "principal_token_program"
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "loan_id",
+          "type": "u64"
+        },
+        {
+          "name": "draw_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "cancel_offer",
+      "docs": [
+        "Withdraw whatever principal is still undrawn and close the offer. Loans",
+        "already opened against it are untouched."
+      ],
+      "discriminator": [
+        92,
+        203,
+        223,
+        40,
+        92,
+        89,
+        53,
+        119
+      ],
+      "accounts": [
+        {
+          "name": "lender",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lender"
+              },
+              {
+                "kind": "account",
+                "path": "offer.offer_id",
+                "account": "Offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "principal_mint",
+          "relations": [
+            "offer"
+          ]
+        },
+        {
+          "name": "offer_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lender_principal_account",
+          "writable": true
+        },
+        {
+          "name": "principal_token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "claim_default",
+      "docs": [
+        "Claim the collateral of a loan that passed its maturity unpaid."
+      ],
+      "discriminator": [
+        12,
+        132,
+        209,
+        37,
+        163,
+        22,
+        128,
+        241
+      ],
+      "accounts": [
+        {
+          "name": "lender",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "borrower",
+          "docs": [
+            "the loan and vault accounts — defaulting costs the collateral, not the rent."
+          ],
+          "writable": true
+        },
+        {
+          "name": "fee_recipient",
+          "writable": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "loan.loan_id",
+                "account": "Loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "collateral_mint",
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan_collateral_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lender_collateral_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "lender"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "fee_collateral_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "fee_recipient"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_offer",
+      "docs": [
+        "Post an offer and escrow the principal behind it.",
+        "",
+        "`collateral_total` is the collateral demanded for a full draw of",
+        "`principal_total`; together they are the LTV. Partial draws take a",
+        "pro-rata slice, rounded up."
+      ],
+      "discriminator": [
+        237,
+        233,
+        192,
+        168,
+        248,
+        7,
+        249,
+        241
+      ],
+      "accounts": [
+        {
+          "name": "lender",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "offer",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "lender"
+              },
+              {
+                "kind": "arg",
+                "path": "offer_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "principal_mint"
+        },
+        {
+          "name": "collateral_mint"
+        },
+        {
+          "name": "offer_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  102,
+                  102,
+                  101,
+                  114,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "offer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lender_principal_account",
+          "writable": true
+        },
+        {
+          "name": "principal_token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "offer_id",
+          "type": "u64"
+        },
+        {
+          "name": "principal_total",
+          "type": "u64"
+        },
+        {
+          "name": "collateral_total",
+          "type": "u64"
+        },
+        {
+          "name": "min_draw",
+          "type": "u64"
+        },
+        {
+          "name": "apr_bps",
+          "type": "u32"
+        },
+        {
+          "name": "duration_seconds",
+          "type": "u32"
+        },
+        {
+          "name": "expiry_ts",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_config",
+      "discriminator": [
+        208,
+        127,
+        21,
+        1,
+        194,
+        190,
+        196,
+        70
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "admin",
+          "type": "pubkey"
+        },
+        {
+          "name": "fee_recipient",
+          "type": "pubkey"
+        },
+        {
+          "name": "origination_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "interest_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "default_fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "propose_admin",
+      "discriminator": [
+        121,
+        214,
+        199,
+        212,
+        87,
+        39,
+        117,
+        234
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "new_admin",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "repay",
+      "docs": [
+        "Repay principal plus the fixed interest and take the collateral back.",
+        "Only valid up to and including the maturity timestamp."
+      ],
+      "discriminator": [
+        234,
+        103,
+        67,
+        82,
+        208,
+        234,
+        219,
+        166
+      ],
+      "accounts": [
+        {
+          "name": "borrower",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "lender",
+          "writable": true
+        },
+        {
+          "name": "fee_recipient",
+          "writable": true
+        },
+        {
+          "name": "config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "loan",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "borrower"
+              },
+              {
+                "kind": "account",
+                "path": "loan.loan_id",
+                "account": "Loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "principal_mint",
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "collateral_mint",
+          "relations": [
+            "loan"
+          ]
+        },
+        {
+          "name": "loan_collateral_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "loan"
+              }
+            ]
+          }
+        },
+        {
+          "name": "borrower_principal_account",
+          "writable": true
+        },
+        {
+          "name": "borrower_collateral_account",
+          "writable": true
+        },
+        {
+          "name": "lender_principal_account",
+          "docs": [
+            "`init_if_needed` on purpose. If the lender were able to close their token",
+            "account before maturity, a missing destination would make repayment",
+            "impossible and hand them the collateral for free. The borrower can always",
+            "re-create it and pay off the loan."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "lender"
+              },
+              {
+                "kind": "account",
+                "path": "principal_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "principal_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "fee_principal_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "fee_recipient"
+              },
+              {
+                "kind": "account",
+                "path": "principal_token_program"
+              },
+              {
+                "kind": "account",
+                "path": "principal_mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "principal_token_program"
+        },
+        {
+          "name": "collateral_token_program"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_fee_recipient",
+      "discriminator": [
+        227,
+        18,
+        215,
+        42,
+        237,
+        246,
+        151,
+        66
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "fee_recipient",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_fees",
+      "discriminator": [
+        137,
+        178,
+        49,
+        58,
+        0,
+        245,
+        242,
+        190
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "origination_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "interest_fee_bps",
+          "type": "u16"
+        },
+        {
+          "name": "default_fee_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "set_paused",
+      "discriminator": [
+        91,
+        60,
+        125,
+        192,
+        176,
+        225,
+        166,
+        218
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "config"
+          ]
+        },
+        {
+          "name": "config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "paused",
+          "type": "bool"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Config",
+      "discriminator": [
+        155,
+        12,
+        170,
+        224,
+        30,
+        250,
+        204,
+        130
+      ]
+    },
+    {
+      "name": "Loan",
+      "discriminator": [
+        20,
+        195,
+        70,
+        117,
+        165,
+        227,
+        182,
+        1
+      ]
+    },
+    {
+      "name": "Offer",
+      "discriminator": [
+        215,
+        88,
+        60,
+        71,
+        170,
+        162,
+        73,
+        229
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "LoanDefaulted",
+      "discriminator": [
+        194,
+        98,
+        51,
+        88,
+        228,
+        118,
+        173,
+        46
+      ]
+    },
+    {
+      "name": "LoanOpened",
+      "discriminator": [
+        66,
+        100,
+        157,
+        177,
+        1,
+        226,
+        123,
+        151
+      ]
+    },
+    {
+      "name": "LoanRepaid",
+      "discriminator": [
+        202,
+        183,
+        88,
+        60,
+        211,
+        54,
+        142,
+        243
+      ]
+    },
+    {
+      "name": "OfferCancelled",
+      "discriminator": [
+        45,
+        42,
+        175,
+        214,
+        51,
+        192,
+        154,
+        9
+      ]
+    },
+    {
+      "name": "OfferCreated",
+      "discriminator": [
+        31,
+        236,
+        215,
+        144,
+        75,
+        45,
+        157,
+        87
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ProtocolPaused",
+      "msg": "Protocol is paused"
+    },
+    {
+      "code": 6001,
+      "name": "NotAdmin",
+      "msg": "Only the admin may perform this action"
+    },
+    {
+      "code": 6002,
+      "name": "NotPendingAdmin",
+      "msg": "Only the pending admin may accept the transfer"
+    },
+    {
+      "code": 6003,
+      "name": "FeeTooHigh",
+      "msg": "Fee exceeds the hard-coded maximum"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidDuration",
+      "msg": "Loan duration outside the permitted range"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidApr",
+      "msg": "APR outside the permitted range"
+    },
+    {
+      "code": 6006,
+      "name": "ZeroAmount",
+      "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidExpiry",
+      "msg": "Offer expiry must be in the future"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidMinDraw",
+      "msg": "min_draw cannot exceed the total principal"
+    },
+    {
+      "code": 6009,
+      "name": "IdenticalMints",
+      "msg": "Principal and collateral mints must differ"
+    },
+    {
+      "code": 6010,
+      "name": "OfferExpired",
+      "msg": "Offer has expired"
+    },
+    {
+      "code": 6011,
+      "name": "InsufficientOfferLiquidity",
+      "msg": "Offer does not have enough undrawn principal"
+    },
+    {
+      "code": 6012,
+      "name": "DrawBelowMinimum",
+      "msg": "Draw is smaller than the offer's minimum"
+    },
+    {
+      "code": 6013,
+      "name": "OfferNotEmpty",
+      "msg": "Offer still has open loans or undrawn principal"
+    },
+    {
+      "code": 6014,
+      "name": "LoanNotActive",
+      "msg": "Loan is not active"
+    },
+    {
+      "code": 6015,
+      "name": "LoanMatured",
+      "msg": "Loan has already matured"
+    },
+    {
+      "code": 6016,
+      "name": "LoanNotMatured",
+      "msg": "Loan has not matured yet"
+    },
+    {
+      "code": 6017,
+      "name": "UnsafeCollateralMint",
+      "msg": "Collateral mint carries a Token-2022 extension that makes escrow unsafe"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidMint",
+      "msg": "Mint account could not be parsed"
+    },
+    {
+      "code": 6019,
+      "name": "TransferAmountMismatch",
+      "msg": "Token transfer moved a different amount than expected"
+    },
+    {
+      "code": 6020,
+      "name": "MathOverflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "Config",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "pending_admin",
+            "docs": [
+              "Two-step admin handover. Zero when no transfer is pending."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "origination_fee_bps",
+            "docs": [
+              "Share of interest charged to the borrower up front, deducted from the",
+              "principal actually disbursed."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "interest_fee_bps",
+            "docs": [
+              "Share of interest skimmed from the lender's return at repayment."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "default_fee_bps",
+            "docs": [
+              "Share of collateral skimmed when a lender claims a defaulted loan."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Blocks new offers and new loans. Repay and claim stay open by design:",
+              "pausing must never trap somebody's collateral."
+            ],
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Loan",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "lender",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "loan_id",
+            "type": "u64"
+          },
+          {
+            "name": "principal_amount",
+            "docs": [
+              "Principal drawn, before the origination fee. This is what must be repaid."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "docs": [
+              "Collateral actually received into escrow — measured by balance delta,",
+              "never assumed from the instruction argument."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "interest_amount",
+            "docs": [
+              "Interest owed at maturity. Fixed at accept time and never accrues:",
+              "there is no rate curve, no utilisation, no oracle."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "start_ts",
+            "type": "i64"
+          },
+          {
+            "name": "maturity_ts",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "LoanStatus"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanDefaulted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "lender",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_claimed",
+            "type": "u64"
+          },
+          {
+            "name": "default_fee",
+            "type": "u64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "lender",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_amount",
+            "type": "u64"
+          },
+          {
+            "name": "origination_fee",
+            "type": "u64"
+          },
+          {
+            "name": "principal_disbursed",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "interest_amount",
+            "type": "u64"
+          },
+          {
+            "name": "start_ts",
+            "type": "i64"
+          },
+          {
+            "name": "maturity_ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanRepaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "loan",
+            "type": "pubkey"
+          },
+          {
+            "name": "borrower",
+            "type": "pubkey"
+          },
+          {
+            "name": "lender",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_amount",
+            "type": "u64"
+          },
+          {
+            "name": "interest_amount",
+            "type": "u64"
+          },
+          {
+            "name": "interest_fee",
+            "type": "u64"
+          },
+          {
+            "name": "lender_received",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_returned",
+            "type": "u64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LoanStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Repaid"
+          },
+          {
+            "name": "Defaulted"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Offer",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "lender",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "offer_id",
+            "type": "u64"
+          },
+          {
+            "name": "principal_total",
+            "docs": [
+              "Principal originally committed by the lender."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "principal_available",
+            "docs": [
+              "Principal still undrawn and sitting in the offer vault."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "collateral_total",
+            "docs": [
+              "Collateral demanded for a full draw of `principal_total`.",
+              "Together these two numbers are the LTV; partial draws are pro-rata."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "min_draw",
+            "docs": [
+              "Smallest principal a borrower may draw, to stop dust loans from",
+              "spamming the book with rent-bearing accounts."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "apr_bps",
+            "type": "u32"
+          },
+          {
+            "name": "duration_seconds",
+            "type": "u32"
+          },
+          {
+            "name": "expiry_ts",
+            "docs": [
+              "After this the offer can no longer be accepted (loans already opened",
+              "from it are unaffected)."
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "loans_opened",
+            "docs": [
+              "Monotonic counter, purely for indexing and analytics."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OfferCancelled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "lender",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_returned",
+            "type": "u64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OfferCreated",
+      "docs": [
+        "Every state transition emits an event. The indexer is built on these rather",
+        "than on account polling, so the frontend never has to touch getProgramAccounts."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "offer",
+            "type": "pubkey"
+          },
+          {
+            "name": "lender",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "principal_total",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_total",
+            "type": "u64"
+          },
+          {
+            "name": "min_draw",
+            "type": "u64"
+          },
+          {
+            "name": "apr_bps",
+            "type": "u32"
+          },
+          {
+            "name": "duration_seconds",
+            "type": "u32"
+          },
+          {
+            "name": "expiry_ts",
+            "type": "i64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "CONFIG_SEED",
+      "type": "bytes",
+      "value": "[99, 111, 110, 102, 105, 103]"
+    },
+    {
+      "name": "LOAN_SEED",
+      "type": "bytes",
+      "value": "[108, 111, 97, 110]"
+    },
+    {
+      "name": "LOAN_VAULT_SEED",
+      "type": "bytes",
+      "value": "[108, 111, 97, 110, 95, 118, 97, 117, 108, 116]"
+    },
+    {
+      "name": "OFFER_SEED",
+      "type": "bytes",
+      "value": "[111, 102, 102, 101, 114]"
+    },
+    {
+      "name": "OFFER_VAULT_SEED",
+      "type": "bytes",
+      "value": "[111, 102, 102, 101, 114, 95, 118, 97, 117, 108, 116]"
+    }
+  ]
+}

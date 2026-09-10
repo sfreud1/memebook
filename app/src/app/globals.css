@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+body {
+  @apply bg-ink text-neutral-100 antialiased;
+  font-feature-settings: "tnum";
+}
+
+/* Wallet adapter ships its own styles; align them with the app's palette. */
+.wallet-adapter-button {
+  @apply !bg-accent !text-ink !font-semibold !rounded-lg !h-9 !px-4 !text-sm;
+}
+.wallet-adapter-button:not([disabled]):hover { @apply !bg-accent/80; }
+
+.panel { @apply bg-panel border border-edge rounded-xl; }
+.field {
+  @apply w-full bg-ink border border-edge rounded-lg px-3 py-2 text-sm
+         outline-none focus:border-accent/60 transition-colors;
+}
+.label { @apply block text-xs uppercase tracking-wide text-muted mb-1.5; }
+.btn {
+  @apply rounded-lg px-4 py-2 text-sm font-semibold transition-colors
+         disabled:opacity-40 disabled:cursor-not-allowed;
+}
+.btn-primary { @apply btn bg-accent text-ink hover:bg-accent/80; }
+.btn-ghost   { @apply btn border border-edge text-neutral-200 hover:border-muted; }
