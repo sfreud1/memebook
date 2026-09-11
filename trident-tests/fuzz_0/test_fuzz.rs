@@ -121,8 +121,8 @@ impl FuzzTest {
         for _ in 0..ACTORS {
             let who = self.trident.random_keypair().pubkey();
             self.trident.airdrop(&who, 100_000_000_000);
-            let p = self.setup_ata(&payer, self.principal_mint, who, 1_000_000_000_000);
-            let c = self.setup_ata(&payer, self.collateral_mint, who, 1_000_000_000_000);
+            let p = self.setup_ata(&payer, self.principal_mint, who, 100_000_000_000_000);
+            let c = self.setup_ata(&payer, self.collateral_mint, who, 100_000_000_000_000);
             self.actors.push(who);
             self.principal_atas.push(p);
             self.collateral_atas.push(c);
@@ -156,18 +156,7 @@ impl FuzzTest {
         let vault = self.trident.find_program_address(
             &[b"offer_vault", offer.as_ref()], &program_id()).0;
 
-        let principal = self.amount();
-        let collateral = self.amount();
-        // Usually a sane floor, sometimes above the offer itself.
-        let min_draw = if self.trident.random_from_range(0u8..=9u8) < 8 {
-            self.trident.random_from_range(1u64..=principal.max(1))
-        } else {
-            self.amount()
-        };
-        let apr = self.apr();
-        let duration = self.duration();
-        let now = self.trident.get_current_timestamp();
-        let expiry = now + self.trident.random_from_range(-60i64..=1_000_000i64);
+        let (principal, collateral, min_draw, apr, duration, expiry) = self.offer_params();
 
         let ix = CreateOfferInstruction::data(CreateOfferInstructionData::new(
             id, principal, collateral, min_draw, apr, duration, expiry,
@@ -211,10 +200,10 @@ impl FuzzTest {
                     }
                     6..=7 => state.principal_available,
                     8 => state.principal_available.saturating_add(1),
-                    _ => self.amount(),
+                    _ => self.trident.random_from_range(1u64..=2_000_000_000u64),
                 }
             }
-            _ => self.amount(),
+            _ => self.trident.random_from_range(1u64..=2_000_000_000u64),
         };
 
         let ix = AcceptOfferInstruction::data(AcceptOfferInstructionData::new(id, draw))
@@ -352,35 +341,53 @@ impl FuzzTest {
         }
     }
 
-    /// Mostly values a real lender would type, sometimes the extremes.
+    /// Builds offer parameters that are *valid by construction* most of the
+    /// time, and deliberately invalid the rest.
     ///
-    /// Drawing uniformly across u64 sounds thorough but wastes the run: almost
-    /// every draw exceeds any balance and is rejected before touching the logic
-    /// worth testing. The tail is still visited, just not exclusively.
-    fn amount(&mut self) -> u64 {
-        match self.trident.random_from_range(0u8..=99u8) {
-            0..=74 => self.trident.random_from_range(1u64..=2_000_000_000u64),
-            75..=89 => self.trident.random_from_range(1u64..=1_000_000_000_000u64),
-            90..=94 => self.trident.random_from_range(0u64..=10u64),
-            95..=97 => self.trident.random_log_uniform(),
-            _ => u64::MAX - self.trident.random_from_range(0u64..=3u64),
-        }
-    }
+    /// Sampling each field independently and hoping the combination is legal
+    /// does not survive a long campaign. Coverage-guided mutation treats an
+    /// early `require!` rejection as new coverage just like anything else, so
+    /// it drifts toward inputs that never reach the logic worth testing: a
+    /// twenty-thousand-iteration run landed *fewer* successful offers than a
+    /// two-thousand one. Deciding validity first and then constructing to
+    /// match keeps the interesting path reachable however the bytes mutate.
+    fn offer_params(&mut self) -> (u64, u64, u64, u32, u32, i64) {
+        let now = self.trident.get_current_timestamp();
+        // Kept deliberately low. Coverage-guided mutation already drifts toward
+        // rejection paths on its own over a long campaign — a 150-iteration run
+        // lands 66% of its offers, the same generator over 2000 iterations lands
+        // 6% — so the budget spent inviting it there should be small.
+        let invalid = self.trident.random_from_range(0u8..=19u8) == 0;
 
-    fn duration(&mut self) -> u32 {
-        match self.trident.random_from_range(0u8..=99u8) {
-            0..=69 => self.trident.random_from_range(60u32..=2_592_000u32),
-            70..=84 => self.trident.random_from_range(0u32..=120u32),
-            85..=94 => self.trident.random_from_range(31_536_000u32..=31_536_100u32),
-            _ => self.trident.random_from_range(0u32..=u32::MAX),
-        }
-    }
+        let principal: u64 = match self.trident.random_from_range(0u8..=9u8) {
+            0..=6 => self.trident.random_from_range(1_000u64..=2_000_000_000u64),
+            7..=8 => self.trident.random_from_range(1u64..=1_000u64),
+            _ => self.trident.random_from_range(1u64..=500_000_000_000u64),
+        };
+        let collateral: u64 = match self.trident.random_from_range(0u8..=9u8) {
+            0..=6 => self.trident.random_from_range(1_000u64..=50_000_000_000u64),
+            7..=8 => self.trident.random_from_range(1u64..=1_000u64),
+            _ => self.trident.random_from_range(1u64..=500_000_000_000u64),
+        };
+        let min_draw = self.trident.random_from_range(1u64..=principal);
+        let apr = self.trident.random_from_range(0u32..=100_000u32);
+        let duration = self.trident.random_from_range(60u32..=31_536_000u32);
+        let expiry = now + self.trident.random_from_range(1i64..=1_000_000i64);
 
-    fn apr(&mut self) -> u32 {
-        match self.trident.random_from_range(0u8..=99u8) {
-            0..=79 => self.trident.random_from_range(0u32..=20_000u32),
-            80..=94 => self.trident.random_from_range(99_990u32..=100_010u32),
-            _ => self.trident.random_from_range(0u32..=u32::MAX),
+        if !invalid {
+            return (principal, collateral, min_draw, apr, duration, expiry);
+        }
+
+        // One deliberate violation at a time, so each rejection path is
+        // exercised on purpose rather than by accident.
+        match self.trident.random_from_range(0u8..=6u8) {
+            0 => (0, collateral, min_draw, apr, duration, expiry),
+            1 => (principal, 0, min_draw, apr, duration, expiry),
+            2 => (principal, collateral, principal.saturating_add(1), apr, duration, expiry),
+            3 => (principal, collateral, min_draw, u32::MAX, duration, expiry),
+            4 => (principal, collateral, min_draw, apr, 59, expiry),
+            5 => (principal, collateral, min_draw, apr, u32::MAX, expiry),
+            _ => (principal, collateral, min_draw, apr, duration, now - 1),
         }
     }
 
