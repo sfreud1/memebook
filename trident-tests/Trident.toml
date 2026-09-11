@@ -1,0 +1,8 @@
+[fuzz.metrics]
+enabled = true
+
+
+[[fuzz.programs]]
+address = "GGVLRegjz8K7op4KzJELS8GpEqHHCv7XagZBkEpCvsjh"
+program = "../target/deploy/memebook.so"
+ 

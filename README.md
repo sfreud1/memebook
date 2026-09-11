@@ -158,6 +158,38 @@ The suite also pins down three specific attacks: splitting one draw into many to
 post less collateral (it costs more, never less — pro-rata collateral rounds
 up), settling somebody else's position, and claiming an already-claimed loan.
 
+## Fuzzing
+
+```bash
+cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0
+cd trident-tests && trident fuzz run fuzz_0
+```
+
+The first line matters: Trident loads the compiled `.so` into its own SVM, and
+that SVM rejects the sBPF v3 binary `anchor build` produces — the program
+simply reports itself as not deployed and every instruction fails. Build for v0
+before fuzzing.
+
+Where the hand-written suites check situations somebody thought to write down,
+this builds sequences nobody chose: every instruction in random order, amounts
+and rates weighted toward the awkward parts of the range but still reaching the
+extremes, and the clock jumping forward at arbitrary points so maturity lands
+wherever it lands. The same solvency invariants are asserted after each
+iteration.
+
+That distinction is not academic. The behavioural suite passed for days while
+repayment was impossible whenever one wallet held two roles, because every test
+in it gave those roles separate keypairs.
+
+Longer campaigns:
+
+```bash
+FUZZ_ITERATIONS=50000 FUZZ_FLOWS=100 trident fuzz run fuzz_0
+```
+
+A failure prints the master seed; `trident fuzz debug fuzz_0 <SEED>` replays
+that exact run.
+
 ## Status
 
 The program is complete, with 12 behavioural and 4 invariant tests passing,
