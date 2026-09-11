@@ -903,6 +903,72 @@ export type Memebook = {
       ]
     },
     {
+      "name": "migrateConfig",
+      "docs": [
+        "Rewrite the config singleton from an older layout to the current one.",
+        "Upgrade authority only; refuses an account that is already current."
+      ],
+      "discriminator": [
+        92,
+        131,
+        58,
+        105,
+        210,
+        154,
+        224,
+        193
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "docs": [
+            "Must be the program's upgrade authority — the same gate as",
+            "`initialize_config`. Rewriting the bytes the program reads is a",
+            "deployment step, and the party that can change the code is the only",
+            "one who may change the data to match it."
+          ],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "program",
+          "address": "GGVLRegjz8K7op4KzJELS8GpEqHHCv7XagZBkEpCvsjh"
+        },
+        {
+          "name": "programData"
+        },
+        {
+          "name": "config",
+          "docs": [
+            "typed deserialiser cannot read the old layout — that is the reason this",
+            "instruction exists — so seeds, owner and discriminator are checked here",
+            "and the bytes are rewritten by hand."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "proposeAdmin",
       "discriminator": [
         121,
@@ -1437,6 +1503,19 @@ export type Memebook = {
       ]
     },
     {
+      "name": "configMigrated",
+      "discriminator": [
+        115,
+        69,
+        99,
+        100,
+        192,
+        77,
+        40,
+        50
+      ]
+    },
+    {
       "name": "feeRecipientUpdated",
       "discriminator": [
         24,
@@ -1649,6 +1728,16 @@ export type Memebook = {
     },
     {
       "code": 6021,
+      "name": "alreadyMigrated",
+      "msg": "Config already has the current layout"
+    },
+    {
+      "code": 6022,
+      "name": "unknownLayout",
+      "msg": "Config bytes match no layout this program knows how to migrate"
+    },
+    {
+      "code": 6023,
       "name": "mathOverflow",
       "msg": "Arithmetic overflow"
     }
@@ -1731,6 +1820,30 @@ export type Memebook = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "configMigrated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fromVersion",
+            "type": "u8"
+          },
+          {
+            "name": "toVersion",
+            "type": "u8"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
           }
         ]
       }

@@ -124,9 +124,11 @@ export async function backfill(db: Db, connection: Connection, programId: Public
       break;
     }
     if (page.length === 0) break;
-    pending.push(...page);
+    pending.push(...page.filter((s) => s.slot >= config.startSlot));
     before = page[page.length - 1]!.signature;
     if (page.length < config.signaturePage) break;
+    // Pages come newest-first; once one ends below the cutoff, nothing older matters.
+    if (page[page.length - 1]!.slot < config.startSlot) break;
   }
 
   if (pending.length === 0) {
@@ -173,6 +175,7 @@ export function subscribe(db: Db, connection: Connection, programId: PublicKey) 
   const id = connection.onLogs(
     programId,
     async (logs, ctx) => {
+      if (ctx.slot < config.startSlot) return;
       if (logs.err) return;
       try {
         const applied = await ingestTransaction(

@@ -93,3 +93,11 @@ pub struct AdminTransferred {
     pub new_admin: Pubkey,
     pub ts: i64,
 }
+
+#[event]
+pub struct ConfigMigrated {
+    pub from_version: u8,
+    pub to_version: u8,
+    pub admin: Pubkey,
+    pub ts: i64,
+}

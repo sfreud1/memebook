@@ -314,7 +314,7 @@
         <li>Token-2022 uzantı matrisi: hangi uzantı hangi transfer yolunu kırar</li>
         <li>Hesap kapatma ve adres yeniden kullanımı — zincirde ve indexer'da</li>
         <li>Yetki değişikliklerinin gözlemlenebilirliği (olaylar)</li>
-        <li>22 el yazımı test + 2.000 turluk kapsama güdümlü fuzz koşusu</li>
+        <li>23 el yazımı test + 2.000 turluk kapsama güdümlü fuzz koşusu</li>
       </ul>
     </div>
   </div>
@@ -542,9 +542,9 @@
   <article class="risk">
     <div class="id">R-03</div>
     <div>
-      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-accepted">Kabul · migration gerekince</span>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-accepted">Kabul · Offer/Loan donduruldu</span>
         <h3>Düzen dondurma</h3></div>
-      <p>Sürüm baytı (MB-06) migration'ı <em>mümkün</em> kılar, ama migration instruction'ı yazılmadı. Mainnet sonrası bir alan eklemek gerekirse: yeni boyutla <code>realloc</code> eden ve <code>version</code>'ı yükselten bir instruction gerekir; eski sürüm hesapları o arada okunmaya devam edecek şekilde. Bunu bugün yazmak yerine ihtiyaç çıkınca yazmak kabul edildi — üç hesabın düzeni bu commit'ten sonra dondurulmuş sayılır.</p>
+      <p>Sürüm baytı (MB-06) migration'ı <em>mümkün</em> kılar. Denetim sonrası eklenen <code>migrate_config</code> bunun ilk örneği: yalnızca upgrade authority çağırabilir (MB-03 ile aynı kapı), <code>Config</code>'i eski düzenden yerinde yeniden yazar, zaten güncel bir hesabı <code>AlreadyMigrated</code> ile reddeder. Bayt kaydırması birim testli; devnet'te 496 843 286. slottaki deploy'un ardından çalıştırıldı ve admin, ücret alıcısı ve oranlar korundu. <code>Offer</code> ve <code>Loan</code> için migration yolu yok — bu iki düzen dondurulmuş sayılır; mainnet sonrası alan eklemek gerekirse önce migration yazılır.</p>
     </div>
   </article>
 
@@ -592,7 +592,7 @@
     <table>
       <thead><tr><th>Paket</th><th>Ne soruyor</th><th class="num">Test</th><th>Sonuç</th></tr></thead>
       <tbody>
-        <tr><td><code>tests/memebook.ts</code></td><td>Her instruction dediğini yapıyor mu; upgrade authority şartı, ücret anlık görüntüsü, iki mint taraması, sıfır ödeme reddi</td><td class="num">14</td><td class="ok">geçti</td></tr>
+        <tr><td><code>tests/memebook.ts</code></td><td>Her instruction dediğini yapıyor mu; upgrade authority şartı, ücret anlık görüntüsü, iki mint taraması, sıfır ödeme reddi, güncel Config'in yeniden taşınmasının reddi</td><td class="num">15</td><td class="ok">geçti</td></tr>
         <tr><td><code>tests/invariants.ts</code></td><td>150 rastgele işlemden sonra kasa = kalan anapara, kasa = kayıtlı teminat, token korunumu, bölünmüş çekimin ucuza gelmemesi</td><td class="num">4</td><td class="ok">geçti</td></tr>
         <tr><td><code>tests/fee-collision.ts</code></td><td>Lender = ücret alıcısı, kendi ilanına borçlanma gibi hesap örtüşmeleri</td><td class="num">4</td><td class="ok">geçti</td></tr>
       </tbody>

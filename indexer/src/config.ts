@@ -21,6 +21,13 @@ export const config = {
   /** Pause between backfill transaction fetches. Public RPCs need it. */
   backfillDelayMs: Number(process.env.BACKFILL_DELAY_MS ?? 250),
 
+  /**
+   * Ignore program history before this slot. Set it to the slot of a deploy
+   * that changed the account layout: positions from before it can no longer be
+   * read by the program, so the book must not show them.
+   */
+  startSlot: Number(process.env.START_SLOT ?? 0),
+
   /** Backfill page size; RPC caps this at 1000. */
   signaturePage: Number(process.env.SIGNATURE_PAGE ?? 1000),
   /** "*" in dev; set to the frontend origin in production. */

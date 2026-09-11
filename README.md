@@ -128,7 +128,7 @@ lenders per offer.
 ## Tests
 
 ```bash
-./run-tests.sh                         # behaviour — 14 tests
+./run-tests.sh                         # behaviour — 15 tests
 ./run-tests.sh tests/invariants.ts     # invariants — 4 tests
 ./run-tests.sh tests/fee-collision.ts  # one wallet in two roles — 4 tests
 ```
@@ -211,13 +211,19 @@ This happened here while fixing the fee-snapshot issue below, on devnet, which
 is the only good place for it to happen. Every account now carries a leading
 `version: u8` (`ACCOUNT_VERSION` in `state.rs`) so a future program can tell
 old accounts from new and migrate them deliberately instead of failing on
-them. The migration instruction itself is not written; treat the layouts as
-frozen from the version-byte commit onward and write it when a change is
-actually needed.
+them. `migrate_config` is the first such migration: gated to the upgrade
+authority like `initialize_config`, it rewrites the Config singleton from the
+pre-version layout in place (`scripts/migrate-config.ts` ran it on devnet
+after the version-byte deploy). Offers and loans have no migration path —
+treat their layouts as frozen.
+
+After a layout-changing deploy, start the indexer with `START_SLOT=<deploy
+slot>` on a fresh database so positions the program can no longer read stay
+out of the book.
 
 ## Status
 
-The program is complete: 14 behavioural, 4 invariant and 4 aliasing tests pass,
+The program is complete: 15 behavioural, 4 invariant and 4 aliasing tests pass,
 including the maturity and default paths, and a 2,000-iteration Trident
 campaign runs with no panics and no invariant violations.
 

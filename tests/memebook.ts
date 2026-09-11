@@ -176,6 +176,23 @@ describe("memebook", () => {
     assert.isFalse(cfg.paused);
   });
 
+  it("refuses to migrate a config that already has the current layout", async () => {
+    await expectFailure(
+      program.methods
+        .migrateConfig()
+        .accountsPartial({
+          payer: payer.publicKey,
+          config: configPda,
+          program: program.programId,
+          programData: programDataPda(program.programId),
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([payer])
+        .rpc(),
+      "AlreadyMigrated"
+    );
+  });
+
   it("refuses an interest fee above the hard cap", async () => {
     // MAX_INTEREST_FEE_BPS is 3000. A compromised admin key must not be able to
     // raise the take rate arbitrarily.

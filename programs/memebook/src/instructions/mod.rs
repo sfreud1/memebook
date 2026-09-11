@@ -11,6 +11,7 @@ pub mod cancel_offer;
 pub mod claim_default;
 pub mod create_offer;
 pub mod initialize_config;
+pub mod migrate_config;
 pub mod repay;
 pub mod update_config;
 
@@ -19,5 +20,6 @@ pub use cancel_offer::*;
 pub use claim_default::*;
 pub use create_offer::*;
 pub use initialize_config::*;
+pub use migrate_config::*;
 pub use repay::*;
 pub use update_config::*;

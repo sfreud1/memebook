@@ -50,6 +50,11 @@ pub enum MemebookError {
     #[msg("Origination fee would consume the entire disbursement")]
     OriginationFeeExceedsPrincipal,
 
+    #[msg("Config already has the current layout")]
+    AlreadyMigrated,
+    #[msg("Config bytes match no layout this program knows how to migrate")]
+    UnknownLayout,
+
     #[msg("Arithmetic overflow")]
     MathOverflow,
 }

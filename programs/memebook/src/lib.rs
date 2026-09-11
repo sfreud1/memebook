@@ -53,6 +53,12 @@ pub mod memebook {
         )
     }
 
+    /// Rewrite the config singleton from an older layout to the current one.
+    /// Upgrade authority only; refuses an account that is already current.
+    pub fn migrate_config(ctx: Context<MigrateConfig>) -> Result<()> {
+        instructions::migrate_config::handler(ctx)
+    }
+
     pub fn set_fees(
         ctx: Context<UpdateConfig>,
         origination_fee_bps: u16,
