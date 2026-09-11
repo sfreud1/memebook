@@ -11,6 +11,20 @@ import { createOffer } from "@/lib/program";
 import { TokenBadge } from "@/components/TokenBadge";
 import { knownTokens, defaultPair, tokenSymbol } from "@/lib/tokens";
 
+const UNIT_SECONDS: Record<string, number> = {
+  dakika: 60,
+  saat: 3_600,
+  gun: 86_400,
+};
+
+/** The program thinks in seconds; the form lets a lender think in whatever
+ *  unit suits the loan they have in mind. */
+function toSeconds(value: string, unit: string): number {
+  const n = Number(value.replace(",", "."));
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.round(n * (UNIT_SECONDS[unit] ?? 86_400));
+}
+
 export default function LendPage() {
   const { publicKey } = useWallet();
   const program = useProgram();
@@ -30,8 +44,10 @@ export default function LendPage() {
     collateralTotal: "28045",
     minDraw: "10",
     apr: "18,75",
-    durationDays: "30",
-    expiryDays: "7",
+    duration: "30",
+    durationUnit: "gun",
+    expiry: "7",
+    expiryUnit: "gun",
   }));
 
   const load = () =>
@@ -57,6 +73,13 @@ export default function LendPage() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const setUnit = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLSelectElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const durationSeconds = toSeconds(form.duration, form.durationUnit);
+  // Mirrors the program's own bounds so the form refuses what the chain would.
+  const durationValid = durationSeconds >= 60 && durationSeconds <= 365 * 86_400;
+
   async function onCreate() {
     if (!program || !publicKey) return;
     setBusy(true);
@@ -79,10 +102,8 @@ export default function LendPage() {
         collateralTotal: toRaw(form.collateralTotal, cDec),
         minDraw: toRaw(form.minDraw, pDec),
         aprBps: Math.round(Number(form.apr.replace(",", ".")) * 100),
-        durationSeconds: Math.round(Number(form.durationDays) * 86_400),
-        expiryTs:
-          Math.floor(Date.now() / 1000) +
-          Math.round(Number(form.expiryDays) * 86_400),
+        durationSeconds: toSeconds(form.duration, form.durationUnit),
+        expiryTs: Math.floor(Date.now() / 1000) + toSeconds(form.expiry, form.expiryUnit),
       });
       setDone(
         "Teklifin yayında. Paran kilitlendi, biri çekene kadar orada bekleyecek. İstediğin an iptal edip geri alabilirsin."
@@ -275,16 +296,48 @@ export default function LendPage() {
           </div>
 
           <div>
-            <label className="label">Kredi vadesi (gün)</label>
-            <input className="field" value={form.durationDays} onChange={set("durationDays")} />
-            <p className="mt-1.5 text-xs text-muted">
-              Paran bu süre boyunca kilitli kalır, erken çıkamazsın.
+            <label className="label">Kredi vadesi</label>
+            <div className="flex gap-2">
+              <input
+                className="field min-w-0 flex-1"
+                value={form.duration}
+                onChange={set("duration")}
+              />
+              <select
+                className="field w-32 shrink-0"
+                value={form.durationUnit}
+                onChange={setUnit("durationUnit")}
+              >
+                <option value="dakika">dakika</option>
+                <option value="saat">saat</option>
+                <option value="gun">gün</option>
+              </select>
+            </div>
+            <p className={`mt-1.5 text-xs ${durationValid ? "text-muted" : "text-red-300"}`}>
+              {durationValid
+                ? "Paran bu süre boyunca kilitli kalır, erken çıkamazsın."
+                : "Vade en az 1 dakika, en çok 365 gün olabilir."}
             </p>
           </div>
 
           <div>
-            <label className="label">Teklifin geçerlilik süresi (gün)</label>
-            <input className="field" value={form.expiryDays} onChange={set("expiryDays")} />
+            <label className="label">Teklifin geçerlilik süresi</label>
+            <div className="flex gap-2">
+              <input
+                className="field min-w-0 flex-1"
+                value={form.expiry}
+                onChange={set("expiry")}
+              />
+              <select
+                className="field w-32 shrink-0"
+                value={form.expiryUnit}
+                onChange={setUnit("expiryUnit")}
+              >
+                <option value="dakika">dakika</option>
+                <option value="saat">saat</option>
+                <option value="gun">gün</option>
+              </select>
+            </div>
             <p className="mt-1.5 text-xs text-muted">
               Bu sürede kimse çekmezse teklif kapanır.
             </p>
@@ -304,7 +357,8 @@ export default function LendPage() {
               !form.principalMint ||
               !form.collateralMint ||
               (form.principalMint === "__custom__" && !customPrincipal.trim()) ||
-              (form.collateralMint === "__custom__" && !customCollateral.trim())
+              (form.collateralMint === "__custom__" && !customCollateral.trim()) ||
+              !durationValid
             }
             onClick={onCreate}
           >
