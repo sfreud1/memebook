@@ -45,7 +45,7 @@ export default function BorrowPage() {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
-  const [prep, setPrep] = useState<TxPrep | null>(null);
+  const [preps, setPreps] = useState<Record<string, TxPrep>>({});
   const [sort, setSort] = useState<"apr" | "newest" | "size">("apr");
 
   useEffect(() => {
@@ -103,24 +103,44 @@ export default function BorrowPage() {
     busy
   );
 
-  // Warm the on-chain lookups now. Doing them inside the click handler costs a
-  // couple of seconds, and the wallet's approval popup is suppressed once the
-  // browser no longer considers the call part of the user's gesture.
+  // Warm the on-chain lookups now, one set per token pair on screen.
+  //
+  // Doing them inside the click handler costs a couple of seconds, and a wallet
+  // extension's approval popup is suppressed once the browser stops treating
+  // the call as part of the user's gesture. The all-collaterals view can list
+  // several pairs at once, so they are keyed rather than held singly.
   useEffect(() => {
+    if (!program || offers.length === 0) return;
+    const pairs = new Map<string, [string, string]>();
+    for (const o of offers) {
+      pairs.set(`${o.principal_mint}:${o.collateral_mint}`, [
+        o.principal_mint,
+        o.collateral_mint,
+      ]);
+    }
     let cancelled = false;
-    setPrep(null);
-    if (!program || !principalMint || !collateral) return;
-    prepare(program, new PublicKey(principalMint), new PublicKey(collateral))
-      .then((p) => {
-        if (!cancelled) setPrep(p);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Zincir bilgileri okunamadı. Ağ bağlantını kontrol et.");
-      });
+    (async () => {
+      for (const [key, [principal, coll]] of pairs) {
+        if (preps[key]) continue;
+        try {
+          const ready = await prepare(
+            program,
+            new PublicKey(principal),
+            new PublicKey(coll)
+          );
+          if (!cancelled) setPreps((cur) => ({ ...cur, [key]: ready }));
+        } catch {
+          // Leave it unprepared; accepting falls back to loading on demand.
+        }
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, [program, principalMint, collateral]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [program, offers]);
+
+  const prepFor = (o: Offer) => preps[`${o.principal_mint}:${o.collateral_mint}`];
 
   const drawRaw = useMemo(() => {
     try {
@@ -138,7 +158,7 @@ export default function BorrowPage() {
     try {
       // If the signature never comes back the button must not spin forever.
       await Promise.race([
-        acceptOffer(program, publicKey, o, drawRaw, prep ?? undefined),
+        acceptOffer(program, publicKey, o, drawRaw, prepFor(o)),
         new Promise((_, reject) =>
           setTimeout(
             () => reject(new Error("Cüzdan yanıt vermedi. Phantom penceresi açıldı mı?")),
@@ -426,13 +446,15 @@ export default function BorrowPage() {
                 </p>
                 <button
                   className="btn-primary shrink-0"
-                  disabled={!usable || !program || !prep || busy !== null}
+                  disabled={!usable || !program || !prepFor(o) || busy !== null}
                   onClick={() => onBorrow(o)}
-                  title={!prep && program ? "Zincir bilgileri okunuyor…" : undefined}
+                  title={
+                    !prepFor(o) && program ? "Zincir bilgileri okunuyor…" : undefined
+                  }
                 >
                   {busy === o.pubkey
                     ? "Cüzdanı onayla…"
-                    : !prep && program
+                    : !prepFor(o) && program
                       ? "Hazırlanıyor…"
                       : "Borç Al"}
                 </button>
