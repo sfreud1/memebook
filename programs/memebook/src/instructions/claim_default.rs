@@ -58,12 +58,20 @@ pub struct ClaimDefault<'info> {
     )]
     pub lender_collateral_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
+    /// `dup`: this legitimately aliases another account in the same instruction
+    /// when the lender is also the protocol's fee recipient — the operator
+    /// seeding their own book is the obvious case. Anchor's duplicate-mutable
+    /// guard exists to stop two deserialised copies fighting over one write on
+    /// exit; token accounts are owned by the token program and never written
+    /// back by Anchor, so two sequential CPI transfers to one destination are
+    /// exactly as correct as two to different ones.
     #[account(
         init_if_needed,
         payer = lender,
         associated_token::mint = collateral_mint,
         associated_token::authority = fee_recipient,
         associated_token::token_program = collateral_token_program,
+        dup,
     )]
     pub fee_collateral_account: Box<InterfaceAccount<'info, TokenAccount>>,
 

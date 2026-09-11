@@ -20,6 +20,8 @@ import { useConfig } from "@/lib/useConfig";
 import { useTokenBalance } from "@/lib/useTokenBalance";
 import { acceptOffer } from "@/lib/program";
 import { Explainer } from "@/components/Explainer";
+import { TokenBadge } from "@/components/TokenBadge";
+import { tokenSymbol } from "@/lib/tokens";
 
 const SURELER = [
   { label: "7 güne kadar", seconds: 7 * 86_400 },
@@ -165,14 +167,14 @@ export default function BorrowPage() {
               {markets.length === 0 && <option value="">henüz piyasa yok</option>}
               {markets.map((m) => (
                 <option key={m.collateral_mint} value={m.collateral_mint}>
-                  {shortKey(m.collateral_mint)} — {m.offer_count} teklif
+                  {tokenSymbol(m.collateral_mint)} — {m.offer_count} teklif
                 </option>
               ))}
             </select>
             <p className="mt-1.5 text-xs text-muted">
               {collateralBalance === null
                 ? "Cüzdanını bağlayınca bakiyen burada görünecek."
-                : `Cüzdanında ${fromRaw(collateralBalance, cDec)} adet var.`}
+                : `Cüzdanında ${fromRaw(collateralBalance, cDec)} ${tokenSymbol(collateral)} var.`}
             </p>
           </div>
         </div>
@@ -271,19 +273,19 @@ export default function BorrowPage() {
                 <div className="flex justify-between gap-3 sm:contents">
                   <dt className="text-muted sm:py-0.5">Kilitleyeceğin teminat</dt>
                   <dd className="text-right font-medium sm:py-0.5">
-                    {fromRaw(need, cDec)}
+                    {fromRaw(need, cDec)} <TokenBadge mint={o.collateral_mint} />
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3 sm:contents">
                   <dt className="text-muted sm:py-0.5">Eline geçecek</dt>
                   <dd className="text-right font-medium text-accent sm:py-0.5">
-                    {fromRaw(received, pDec)} USDC
+                    {fromRaw(received, pDec)} <TokenBadge mint={o.principal_mint} />
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3 sm:contents">
                   <dt className="text-muted sm:py-0.5">Toplam maliyetin</dt>
                   <dd className="text-right sm:py-0.5">
-                    {fromRaw(totalCost, pDec)} USDC
+                    {fromRaw(totalCost, pDec)} {tokenSymbol(o.principal_mint)}
                     <span className="ml-1.5 text-xs text-muted">
                       ({fromRaw(interest, pDec)} faiz
                       {config ? ` + ${fromRaw(origination, pDec)} açılış ücreti` : ""})
@@ -293,7 +295,7 @@ export default function BorrowPage() {
                 <div className="flex justify-between gap-3 sm:contents">
                   <dt className="text-muted sm:py-0.5">Geri ödeyeceğin</dt>
                   <dd className="text-right font-medium sm:py-0.5">
-                    {fromRaw(repay, pDec)} USDC
+                    {fromRaw(repay, pDec)} <TokenBadge mint={o.principal_mint} />
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3 sm:contents">
@@ -306,17 +308,18 @@ export default function BorrowPage() {
                 <p className="flex-1 text-xs leading-relaxed text-muted">
                   {!enoughLiquidity && drawRaw > available ? (
                     <span className="text-red-300">
-                      Bu teklifte sadece {fromRaw(available, pDec)} USDC kaldı.
-                      Daha düşük bir tutar dene.
+                      Bu teklifte sadece {fromRaw(available, pDec)}{" "}
+                      {tokenSymbol(o.principal_mint)} kaldı. Daha düşük bir tutar dene.
                     </span>
                   ) : !enoughCollateral ? (
                     <span className="text-red-300">
-                      Cüzdanında {fromRaw(need, cDec)} adet teminat yok.
+                      Cüzdanında {fromRaw(need, cDec)} {tokenSymbol(o.collateral_mint)} yok.
                     </span>
                   ) : (
                     <>
-                      Ödemezsen {fromRaw(need, cDec)} adet teminatın teklif
-                      sahibine geçer, {fromRaw(received, pDec)} USDC sende kalır.
+                      Ödemezsen {fromRaw(need, cDec)} {tokenSymbol(o.collateral_mint)}{" "}
+                      teklif sahibine geçer, {fromRaw(received, pDec)}{" "}
+                      {tokenSymbol(o.principal_mint)} sende kalır.
                     </>
                   )}
                 </p>

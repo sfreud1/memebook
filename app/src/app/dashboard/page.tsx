@@ -14,6 +14,8 @@ import {
 import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
 import { cancelOffer, claimDefault, repayLoan } from "@/lib/program";
+import { TokenBadge } from "@/components/TokenBadge";
+import { tokenSymbol } from "@/lib/tokens";
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
@@ -120,7 +122,7 @@ export default function DashboardPage() {
                   <div className="flex justify-between gap-3 sm:contents">
                     <dt className="text-muted sm:py-0.5">Ödeyeceğin</dt>
                     <dd className="text-right font-medium sm:py-0.5">
-                      {fromRaw(due, pDec)} USDC
+                      {fromRaw(due, pDec)} <TokenBadge mint={l.principal_mint} />
                       <span className="ml-1.5 text-xs text-muted">
                         ({fromRaw(l.principal_amount, pDec)} anapara +{" "}
                         {fromRaw(l.interest_amount, pDec)} faiz)
@@ -131,7 +133,7 @@ export default function DashboardPage() {
                     <dt className="text-muted sm:py-0.5">Kilitli teminatın</dt>
                     <dd className="text-right sm:py-0.5">
                       {fromRaw(l.collateral_amount, cDec)}{" "}
-                      {shortKey(l.collateral_mint)}
+                      <TokenBadge mint={l.collateral_mint} />
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3 sm:contents">
@@ -194,14 +196,15 @@ export default function DashboardPage() {
                   <div className="flex justify-between gap-3 sm:contents">
                     <dt className="text-muted sm:py-0.5">Verdiğin</dt>
                     <dd className="text-right font-medium sm:py-0.5">
-                      {fromRaw(l.principal_amount, pDec)} USDC
+                      {fromRaw(l.principal_amount, pDec)}{" "}
+                      <TokenBadge mint={l.principal_mint} />
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3 sm:contents">
                     <dt className="text-muted sm:py-0.5">Tuttuğun teminat</dt>
                     <dd className="text-right sm:py-0.5">
                       {fromRaw(l.collateral_amount, cDec)}{" "}
-                      {shortKey(l.collateral_mint)}
+                      <TokenBadge mint={l.collateral_mint} />
                     </dd>
                   </div>
                   <div className="flex justify-between gap-3 sm:contents">
@@ -264,10 +267,11 @@ export default function DashboardPage() {
                 <div className="min-w-0 flex-1 text-sm">
                   <div className="font-medium">
                     {fromRaw(o.principal_available, pDec)} /{" "}
-                    {fromRaw(o.principal_total, pDec)} USDC çekilmeyi bekliyor
+                    {fromRaw(o.principal_total, pDec)}{" "}
+                    {tokenSymbol(o.principal_mint)} çekilmeyi bekliyor
                   </div>
                   <div className="mt-1 text-xs text-muted">
-                    {shortKey(o.collateral_mint)} teminatına karşılık ·{" "}
+                    {tokenSymbol(o.collateral_mint)} teminatına karşılık ·{" "}
                     {formatApr(o.apr_bps)} · {formatDuration(o.duration_seconds)} ·{" "}
                     {o.loans_opened} kredi çekilmiş
                   </div>

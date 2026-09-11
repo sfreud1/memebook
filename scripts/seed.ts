@@ -15,6 +15,7 @@ import {
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 import idl from "../target/idl/memebook.json" assert { type: "json" };
+import { writeFileSync } from "node:fs";
 
 const RPC = process.env.RPC_URL ?? "http://127.0.0.1:8899";
 
@@ -60,6 +61,30 @@ async function main() {
       payer, 10_000_000_000_000n, [], undefined, TOKEN_PROGRAM_ID
     );
   }
+
+  // A local validator has no token list, so hand the frontend the names and
+  // logos for the mints we just created. Without this the UI can only show
+  // truncated addresses, which nobody can read.
+  writeFileSync(
+    new URL("../app/src/lib/token-registry.json", import.meta.url),
+    JSON.stringify(
+      {
+        [usdc.toBase58()]: {
+          symbol: "USDC",
+          name: "USD Coin",
+          logo: "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png",
+        },
+        [meme.toBase58()]: {
+          symbol: "CATCOIN",
+          name: "Catcoin",
+          logo: "https://cdn.dexscreener.com/cms/images/QLFzvD85Djk0nvgI?width=128&height=128&quality=95&format=auto",
+        },
+      },
+      null,
+      2
+    ) + "\n"
+  );
+  console.log("token registry written for the frontend");
 
   const now = Math.floor(Date.now() / 1000);
   const offers = [

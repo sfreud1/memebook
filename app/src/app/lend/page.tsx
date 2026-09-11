@@ -8,6 +8,7 @@ import { formatApr, formatDuration, fromRaw, shortKey, toRaw } from "@/lib/forma
 import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
 import { createOffer } from "@/lib/program";
+import { TokenBadge } from "@/components/TokenBadge";
 
 export default function LendPage() {
   const { publicKey } = useWallet();
@@ -143,7 +144,7 @@ export default function LendPage() {
                       }
                       title="aşağıdaki formda teminat olarak kullan"
                     >
-                      {shortKey(m.collateral_mint)}
+                      <TokenBadge mint={m.collateral_mint} withName />
                     </button>
                   </td>
                   <td className="px-5 py-3">
