@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const WalletButton = dynamic(
-  () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
+  () => import("@/components/ConnectButton").then((m) => m.ConnectButton),
   { ssr: false }
 );
 

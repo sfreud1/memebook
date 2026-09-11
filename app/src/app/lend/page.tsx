@@ -9,6 +9,7 @@ import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
 import { createOffer } from "@/lib/program";
 import { TokenBadge } from "@/components/TokenBadge";
+import { knownTokens, defaultPair, tokenSymbol } from "@/lib/tokens";
 
 export default function LendPage() {
   const { publicKey } = useWallet();
@@ -18,17 +19,20 @@ export default function LendPage() {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [customPrincipal, setCustomPrincipal] = useState("");
+  const [customCollateral, setCustomCollateral] = useState("");
 
-  const [form, setForm] = useState({
-    principalMint: "",
-    collateralMint: "",
+  const [form, setForm] = useState(() => ({
+    ...defaultPair(),
+    principalMint: defaultPair().principal ?? "",
+    collateralMint: defaultPair().collateral ?? "",
     principalTotal: "500",
     collateralTotal: "28045",
     minDraw: "10",
     apr: "18,75",
     durationDays: "30",
     expiryDays: "7",
-  });
+  }));
 
   const load = () =>
     fetchMarkets()
@@ -45,8 +49,8 @@ export default function LendPage() {
   }, []);
 
   const mints = useMintInfo([
-    form.principalMint,
-    form.collateralMint,
+    form.principalMint === "__custom__" ? customPrincipal : form.principalMint,
+    form.collateralMint === "__custom__" ? customCollateral : form.collateralMint,
     ...markets.map((m) => m.collateral_mint),
   ]);
 
@@ -59,11 +63,18 @@ export default function LendPage() {
     setDone(null);
     setError(null);
     try {
-      const pDec = mints[form.principalMint]?.decimals ?? 6;
-      const cDec = mints[form.collateralMint]?.decimals ?? 6;
+      const principalMint =
+        form.principalMint === "__custom__" ? customPrincipal.trim() : form.principalMint;
+      const collateralMint =
+        form.collateralMint === "__custom__" ? customCollateral.trim() : form.collateralMint;
+      if (principalMint === collateralMint) {
+        throw new Error("Verdiğin para ile teminat aynı token olamaz.");
+      }
+      const pDec = mints[principalMint]?.decimals ?? 6;
+      const cDec = mints[collateralMint]?.decimals ?? 6;
       await createOffer(program, publicKey, {
-        principalMint: new PublicKey(form.principalMint),
-        collateralMint: new PublicKey(form.collateralMint),
+        principalMint: new PublicKey(principalMint),
+        collateralMint: new PublicKey(collateralMint),
         principalTotal: toRaw(form.principalTotal, pDec),
         collateralTotal: toRaw(form.collateralTotal, cDec),
         minDraw: toRaw(form.minDraw, pDec),
@@ -174,31 +185,60 @@ export default function LendPage() {
         </p>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="label">Vereceğin paranın adresi</label>
-            <input
-              className="field font-mono text-xs"
+          <div>
+            <label className="label">Vereceğin para</label>
+            <select
+              className="field"
               value={form.principalMint}
-              onChange={set("principalMint")}
-              placeholder="stablecoin mint adresi"
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              Borçluya ödeyeceğin token. Genelde bir stablecoin.
-            </p>
+              onChange={(e) => setForm((f) => ({ ...f, principalMint: e.target.value }))}
+            >
+              {knownTokens().map((t) => (
+                <option key={t.mint} value={t.mint}>
+                  {t.symbol} — {t.name}
+                </option>
+              ))}
+              <option value="__custom__">Başka bir token (adres gir)…</option>
+            </select>
+            {form.principalMint === "__custom__" ? (
+              <input
+                className="field mt-2 font-mono text-xs"
+                value={customPrincipal}
+                onChange={(e) => setCustomPrincipal(e.target.value)}
+                placeholder="mint adresi"
+              />
+            ) : (
+              <p className="mt-1.5 text-xs text-muted">
+                Borçluya ödeyeceğin token. Genelde bir stablecoin.
+              </p>
+            )}
           </div>
 
-          <div className="sm:col-span-2">
-            <label className="label">Kabul edeceğin teminatın adresi</label>
-            <input
-              className="field font-mono text-xs"
+          <div>
+            <label className="label">Kabul edeceğin teminat</label>
+            <select
+              className="field"
               value={form.collateralMint}
-              onChange={set("collateralMint")}
-              placeholder="memecoin mint adresi"
-            />
-            <p className="mt-1.5 text-xs text-muted">
-              Borçlunun kilitleyeceği token. Ödenmezse bu sana kalır — o yüzden
-              satabileceğin bir şey olmasına dikkat et.
-            </p>
+              onChange={(e) => setForm((f) => ({ ...f, collateralMint: e.target.value }))}
+            >
+              {knownTokens().map((t) => (
+                <option key={t.mint} value={t.mint}>
+                  {t.symbol} — {t.name}
+                </option>
+              ))}
+              <option value="__custom__">Başka bir token (adres gir)…</option>
+            </select>
+            {form.collateralMint === "__custom__" ? (
+              <input
+                className="field mt-2 font-mono text-xs"
+                value={customCollateral}
+                onChange={(e) => setCustomCollateral(e.target.value)}
+                placeholder="mint adresi"
+              />
+            ) : (
+              <p className="mt-1.5 text-xs text-muted">
+                Ödenmezse bu sana kalır — satabileceğin bir şey olmasına dikkat et.
+              </p>
+            )}
           </div>
 
           <div>
@@ -258,7 +298,14 @@ export default function LendPage() {
           </p>
           <button
             className="btn-primary shrink-0"
-            disabled={busy || !program || !form.principalMint || !form.collateralMint}
+            disabled={
+              busy ||
+              !program ||
+              !form.principalMint ||
+              !form.collateralMint ||
+              (form.principalMint === "__custom__" && !customPrincipal.trim()) ||
+              (form.collateralMint === "__custom__" && !customCollateral.trim())
+            }
             onClick={onCreate}
           >
             {busy ? "Açılıyor…" : "Teklifi Yayınla"}

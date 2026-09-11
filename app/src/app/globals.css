@@ -9,12 +9,6 @@ body {
   font-feature-settings: "tnum";
 }
 
-/* Wallet adapter ships its own styles; align them with the app's palette. */
-.wallet-adapter-button {
-  @apply !bg-accent !text-ink !font-semibold !rounded-lg !h-9 !px-4 !text-sm;
-}
-.wallet-adapter-button:not([disabled]):hover { @apply !bg-accent/80; }
-
 .panel { @apply bg-panel border border-edge rounded-xl; }
 .field {
   @apply w-full bg-ink border border-edge rounded-lg px-3 py-2 text-sm
