@@ -14,6 +14,7 @@ export interface Offer {
   expiry_ts: number;
   status: string;
   loans_opened: number;
+  created_at: number;
 }
 
 export interface Loan {

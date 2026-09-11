@@ -12,6 +12,7 @@ import {
   fromRaw,
   interestFor,
   shortKey,
+  timeAgo,
   toRaw,
 } from "@/lib/format";
 import { useMintInfo } from "@/lib/useMintInfo";
@@ -45,13 +46,16 @@ export default function BorrowPage() {
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [prep, setPrep] = useState<TxPrep | null>(null);
+  const [sort, setSort] = useState<"apr" | "newest" | "size">("apr");
 
   useEffect(() => {
     let stop = false;
     const load = () =>
       fetchMarkets()
-        .then((m) => {
+        .then((all) => {
           if (stop) return;
+          // Markets with nothing on offer and nothing outstanding are history.
+          const m = all.filter((x) => x.offer_count > 0 || x.active_loans > 0);
           setMarkets(m);
           setCollateral((c) => c || m[0]?.collateral_mint || "");
           setError(null);
@@ -71,14 +75,16 @@ export default function BorrowPage() {
 
   useEffect(() => {
     if (!collateral) return;
+    // "__all__" is a view, not a mint — skip the balance and decimals lookups
+    // that assume a single collateral.
     fetchOffers({
-      collateral_mint: collateral,
+      collateral_mint: collateral === "__all__" ? undefined : collateral,
       max_duration: maxDuration ?? undefined,
-      sort: "apr",
+      sort,
     })
       .then(setOffers)
       .catch(() => setOffers([]));
-  }, [collateral, maxDuration, tick, busy]);
+  }, [collateral, maxDuration, sort, tick, busy]);
 
   const mints = useMintInfo([
     collateral,
@@ -88,9 +94,14 @@ export default function BorrowPage() {
 
   const principalMint = offers[0]?.principal_mint;
   const pDec = principalMint ? mints[principalMint]?.decimals ?? 6 : 6;
-  const cDec = collateral ? mints[collateral]?.decimals ?? 0 : 0;
+  const decimalsOf = (mint: string | undefined) =>
+    mint ? mints[mint]?.decimals ?? 0 : 0;
+  const cDec = collateral === "__all__" ? 0 : decimalsOf(collateral);
 
-  const collateralBalance = useTokenBalance(collateral, busy);
+  const collateralBalance = useTokenBalance(
+    collateral === "__all__" ? undefined : collateral,
+    busy
+  );
 
   // Warm the on-chain lookups now. Doing them inside the click handler costs a
   // couple of seconds, and the wallet's approval popup is suppressed once the
@@ -195,6 +206,9 @@ export default function BorrowPage() {
               onChange={(e) => setCollateral(e.target.value)}
             >
               {markets.length === 0 && <option value="">henüz piyasa yok</option>}
+              {markets.length > 0 && (
+                <option value="__all__">Tüm teminatlar</option>
+              )}
               {markets.map((m) => (
                 <option key={m.collateral_mint} value={m.collateral_mint}>
                   {tokenSymbol(m.collateral_mint)} — {m.offer_count} teklif
@@ -202,9 +216,11 @@ export default function BorrowPage() {
               ))}
             </select>
             <p className="mt-1.5 text-xs text-muted">
-              {collateralBalance === null
-                ? "Cüzdanını bağlayınca bakiyen burada görünecek."
-                : `Cüzdanında ${fromRaw(collateralBalance, cDec)} ${tokenSymbol(collateral)} var.`}
+              {collateral === "__all__"
+                ? "Her teminattaki teklifler birlikte listeleniyor."
+                : collateralBalance === null
+                  ? "Cüzdanını bağlayınca bakiyen burada görünecek."
+                  : `Cüzdanında ${fromRaw(collateralBalance, cDec)} ${tokenSymbol(collateral)} var.`}
             </p>
           </div>
         </div>
@@ -245,13 +261,27 @@ export default function BorrowPage() {
       )}
 
       <section className="space-y-3">
-        <div className="flex items-baseline justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-semibold">
             Sana para vermeye hazır olanlar
           </h2>
-          <span className="text-xs text-muted">
-            {offers.length} teklif · en ucuzdan sıralı
-          </span>
+          <div className="flex items-center gap-2 text-xs text-muted">
+            <span>{offers.length} teklif</span>
+            <span>·</span>
+            <label htmlFor="sort" className="sr-only">
+              Sıralama
+            </label>
+            <select
+              id="sort"
+              className="rounded-lg border border-edge bg-ink px-2 py-1 text-xs outline-none focus:border-accent/60"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as typeof sort)}
+            >
+              <option value="apr">en ucuz önce</option>
+              <option value="newest">en yeni önce</option>
+              <option value="size">en büyük önce</option>
+            </select>
+          </div>
         </div>
 
         {offers.length === 0 && (
@@ -261,6 +291,7 @@ export default function BorrowPage() {
         )}
 
         {offers.map((o) => {
+          const oDec = decimalsOf(o.collateral_mint);
           const need = collateralFor(
             drawRaw,
             BigInt(o.principal_total),
@@ -277,7 +308,7 @@ export default function BorrowPage() {
 
           // Display-only. The program never reads a price; this exists so two
           // offers denominated in different tokens can be compared by eye.
-          const collateralUsd = usdValue(need, cDec, o.collateral_mint);
+          const collateralUsd = usdValue(need, oDec, o.collateral_mint);
           const repayUsd = usdValue(repay, pDec, o.principal_mint);
           const ltv =
             collateralUsd && collateralUsd > 0 && repayUsd !== undefined
@@ -296,7 +327,9 @@ export default function BorrowPage() {
             drawRaw <= available &&
             (drawRaw >= BigInt(o.min_draw) || drawRaw === available);
           const enoughCollateral =
-            collateralBalance === null || collateralBalance >= need;
+            collateral === "__all__" ||
+            collateralBalance === null ||
+            collateralBalance >= need;
           const usable = enoughLiquidity && enoughCollateral;
 
           return (
@@ -311,6 +344,7 @@ export default function BorrowPage() {
                 </span>
                 <span className="text-xs text-muted">
                   {formatApr(o.apr_bps)} yıllık faiz · {formatDuration(o.duration_seconds)} vade
+                  {o.created_at ? ` · ${timeAgo(o.created_at)}` : ""}
                 </span>
               </div>
 
@@ -318,7 +352,7 @@ export default function BorrowPage() {
                 <div className="flex justify-between gap-3 sm:contents">
                   <dt className="text-muted sm:py-0.5">Kilitleyeceğin teminat</dt>
                   <dd className="text-right font-medium sm:py-0.5">
-                    {fromRaw(need, cDec)} <TokenBadge mint={o.collateral_mint} />
+                    {fromRaw(need, oDec)} <TokenBadge mint={o.collateral_mint} />
                   </dd>
                 </div>
                 <div className="flex justify-between gap-3 sm:contents">
@@ -380,11 +414,11 @@ export default function BorrowPage() {
                     </span>
                   ) : !enoughCollateral ? (
                     <span className="text-red-300">
-                      Cüzdanında {fromRaw(need, cDec)} {tokenSymbol(o.collateral_mint)} yok.
+                      Cüzdanında {fromRaw(need, oDec)} {tokenSymbol(o.collateral_mint)} yok.
                     </span>
                   ) : (
                     <>
-                      Ödemezsen {fromRaw(need, cDec)} {tokenSymbol(o.collateral_mint)}{" "}
+                      Ödemezsen {fromRaw(need, oDec)} {tokenSymbol(o.collateral_mint)}{" "}
                       teklif sahibine geçer, {fromRaw(received, pDec)}{" "}
                       {tokenSymbol(o.principal_mint)} sende kalır.
                     </>

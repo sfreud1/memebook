@@ -64,6 +64,18 @@ export const feeOf = (amount: bigint, bps: number) => (amount * BigInt(bps)) / 1
 
 export const shortKey = (k: string) => `${k.slice(0, 4)}..${k.slice(-4)}`;
 
+/** "3 dakika önce" — how long ago something happened. */
+export function timeAgo(unixTs: number): string {
+  const s = Math.floor(Date.now() / 1000) - unixTs;
+  if (s < 60) return "az önce";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} dakika önce`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} saat önce`;
+  const d = Math.floor(h / 24);
+  return `${d} gün önce`;
+}
+
 export function timeLeft(unixTs: number): string {
   const s = unixTs - Math.floor(Date.now() / 1000);
   if (s <= 0) return "vadesi doldu";
