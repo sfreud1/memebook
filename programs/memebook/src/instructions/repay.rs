@@ -26,6 +26,12 @@ pub struct Repay<'info> {
     #[account(seeds = [CONFIG_SEED], bump = config.bump)]
     pub config: Box<Account<'info, Config>>,
 
+    /// `dup`: may legitimately be the same account as another in this
+    /// instruction when one wallet holds more than one role. Anchor's guard
+    /// exists to stop two deserialised copies fighting over a single write on
+    /// exit; token accounts are owned by the token program and never written
+    /// back by Anchor, so repeated CPI transfers touching one destination
+    /// settle exactly as correctly as separate ones.
     #[account(
         mut,
         seeds = [LOAN_SEED, borrower.key().as_ref(), &loan.loan_id.to_le_bytes()],
@@ -55,6 +61,7 @@ pub struct Repay<'info> {
         token::mint = principal_mint,
         token::authority = borrower,
         token::token_program = principal_token_program,
+        dup,
     )]
     pub borrower_principal_account: Box<InterfaceAccount<'info, TokenAccount>>,
 
@@ -70,12 +77,17 @@ pub struct Repay<'info> {
     /// account before maturity, a missing destination would make repayment
     /// impossible and hand them the collateral for free. The borrower can always
     /// re-create it and pay off the loan.
+    ///
+    /// `dup`: equals `borrower_principal_account` when somebody borrows against
+    /// their own offer, and `fee_principal_account` when the lender is also the
+    /// fee recipient. Neither should make a loan unrepayable.
     #[account(
         init_if_needed,
         payer = borrower,
         associated_token::mint = principal_mint,
         associated_token::authority = lender,
         associated_token::token_program = principal_token_program,
+        dup,
     )]
     pub lender_principal_account: Box<InterfaceAccount<'info, TokenAccount>>,
 

@@ -210,23 +210,26 @@ describe("fee recipient / lender collision", () => {
     assert.isNull(await connection.getAccountInfo(loan));
   });
 
-  it("opens AND repays when borrower, lender and fee recipient are all one wallet",
+  it("repays when borrower, lender and fee recipient are all the same wallet",
     async function () {
     this.timeout(180_000);
-    const loan = await openLoan(3600, everyone);
+    // The operator borrowing against their own book. Every principal-side
+    // token account in `repay` collapses to one address.
+    const solo = lenderAndFeeRecipient;
+    const loan = await openLoan(3600, solo);
     const acc: any = await (program.account as any).loan.fetch(loan);
 
-    const usdcAta = getAssociatedTokenAddressSync(usdc, everyone.publicKey, true, TOKEN_PROGRAM_ID);
-    const memeAta = getAssociatedTokenAddressSync(meme, everyone.publicKey, true, TOKEN_PROGRAM_ID);
+    const usdcAta = getAssociatedTokenAddressSync(usdc, solo.publicKey, true, TOKEN_PROGRAM_ID);
+    const memeAta = getAssociatedTokenAddressSync(meme, solo.publicKey, true, TOKEN_PROGRAM_ID);
     const usdcBefore = await tokenBalance(connection, usdcAta);
     const memeBefore = await tokenBalance(connection, memeAta);
 
     await program.methods
       .repay()
       .accountsPartial({
-        borrower: everyone.publicKey,
-        lender: everyone.publicKey,
-        feeRecipient: everyone.publicKey,
+        borrower: solo.publicKey,
+        lender: solo.publicKey,
+        feeRecipient: solo.publicKey,
         config: configPda,
         loan,
         principalMint: usdc,
@@ -234,17 +237,17 @@ describe("fee recipient / lender collision", () => {
         loanCollateralVault: pda([Buffer.from("loan_vault"), loan.toBuffer()]),
         borrowerPrincipalAccount: usdcAta,
         borrowerCollateralAccount: memeAta,
-        lenderPrincipalAccount: usdcAta, // all three the same, deliberately
+        lenderPrincipalAccount: usdcAta,
         feePrincipalAccount: usdcAta,
         principalTokenProgram: TOKEN_PROGRAM_ID,
         collateralTokenProgram: TOKEN_PROGRAM_ID,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,
       })
-      .signers([everyone])
+      .signers([solo])
       .rpc();
 
-    // Paying yourself nets to zero; the collateral is what actually moves back.
+    // Paying yourself nets to nothing; the collateral is what moves.
     assert.equal(await tokenBalance(connection, usdcAta), usdcBefore);
     assert.equal(
       (await tokenBalance(connection, memeAta)) - memeBefore,
@@ -262,6 +265,7 @@ describe("fee recipient / lender collision", () => {
     const memeAta = getAssociatedTokenAddressSync(
       meme, lenderAndFeeRecipient.publicKey, true, TOKEN_PROGRAM_ID
     );
+    const memeBefore = await tokenBalance(connection, memeAta);
     await program.methods
       .claimDefault()
       .accountsPartial({
@@ -281,9 +285,10 @@ describe("fee recipient / lender collision", () => {
       .signers([lenderAndFeeRecipient])
       .rpc();
 
-    // Both the lender's share and the protocol's fee land in the one account.
+    // Both the lender's share and the protocol's fee land in the one account,
+    // so the whole collateral arrives even though a fee was charged.
     assert.equal(
-      await tokenBalance(connection, memeAta),
+      (await tokenBalance(connection, memeAta)) - memeBefore,
       BigInt(acc.collateralAmount.toString())
     );
   });

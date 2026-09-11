@@ -18,7 +18,13 @@ async function main() {
     wsEndpoint: config.wsUrl,
   });
 
-  await backfill(db, connection, programId);
+  try {
+    await backfill(db, connection, programId);
+  } catch (err) {
+    // The live tail and the API are still useful with an incomplete history,
+    // and the next pass will fill the gap.
+    console.error("[backfill] aborted:", (err as Error)?.message ?? err);
+  }
   if (backfillOnly) {
     await db.close();
     return;

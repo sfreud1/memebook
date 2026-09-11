@@ -27,6 +27,12 @@ pub struct ClaimDefault<'info> {
     #[account(seeds = [CONFIG_SEED], bump = config.bump)]
     pub config: Box<Account<'info, Config>>,
 
+    /// `dup`: may legitimately be the same account as another in this
+    /// instruction when one wallet holds more than one role. Anchor's guard
+    /// exists to stop two deserialised copies fighting over a single write on
+    /// exit; token accounts are owned by the token program and never written
+    /// back by Anchor, so repeated CPI transfers touching one destination
+    /// settle exactly as correctly as separate ones.
     #[account(
         mut,
         seeds = [LOAN_SEED, borrower.key().as_ref(), &loan.loan_id.to_le_bytes()],
@@ -55,6 +61,7 @@ pub struct ClaimDefault<'info> {
         associated_token::mint = collateral_mint,
         associated_token::authority = lender,
         associated_token::token_program = collateral_token_program,
+        dup,
     )]
     pub lender_collateral_account: Box<InterfaceAccount<'info, TokenAccount>>,
 

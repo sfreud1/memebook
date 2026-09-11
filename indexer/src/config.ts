@@ -18,6 +18,9 @@ export const config = {
   pgliteDir: process.env.PGLITE_DIR ?? resolve(here, "../.data"),
 
   port: Number(process.env.PORT ?? 8080),
+  /** Pause between backfill transaction fetches. Public RPCs need it. */
+  backfillDelayMs: Number(process.env.BACKFILL_DELAY_MS ?? 250),
+
   /** Backfill page size; RPC caps this at 1000. */
   signaturePage: Number(process.env.SIGNATURE_PAGE ?? 1000),
   /** "*" in dev; set to the frontend origin in production. */

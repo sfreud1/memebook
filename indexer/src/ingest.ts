@@ -7,6 +7,36 @@ import { config } from "./config.js";
 
 const COMMITMENT = "confirmed" as const;
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Public RPC endpoints throttle hard, and one `getTransaction` per signature
+ * reaches that ceiling within a few dozen rows. Backs off on 429 rather than
+ * letting one rejected request abort a backfill that is otherwise fine.
+ */
+async function withRetry<T>(
+  label: string,
+  fn: () => Promise<T>,
+  attempts = 5
+): Promise<T | null> {
+  let delay = 500;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const msg = String((err as Error)?.message ?? err);
+      const throttled = msg.includes("429") || /too many requests/i.test(msg);
+      if (!throttled || i === attempts - 1) {
+        console.warn(`[ingest] ${label} failed: ${msg.slice(0, 120)}`);
+        return null;
+      }
+      await sleep(delay);
+      delay *= 2;
+    }
+  }
+  return null;
+}
+
 /**
  * A log notification can arrive carrying the all-zero placeholder signature
  * (`1111…`) rather than a real one — a simulated or not-yet-signed transaction.
@@ -82,11 +112,17 @@ export async function backfill(db: Db, connection: Connection, programId: Public
   let before: string | undefined;
 
   for (;;) {
-    const page = await connection.getSignaturesForAddress(
-      programId,
-      { before, limit: config.signaturePage, until: last_signature ?? undefined },
-      COMMITMENT
+    const page = await withRetry("getSignaturesForAddress", () =>
+      connection.getSignaturesForAddress(
+        programId,
+        { before, limit: config.signaturePage, until: last_signature ?? undefined },
+        COMMITMENT
+      )
     );
+    if (page === null) {
+      console.warn("[backfill] could not list signatures; continuing with what we have");
+      break;
+    }
     if (page.length === 0) break;
     pending.push(...page);
     before = page[page.length - 1]!.signature;
@@ -102,12 +138,20 @@ export async function backfill(db: Db, connection: Connection, programId: Public
   console.log(`[backfill] ${pending.length} signature(s) to process`);
 
   let events = 0;
+  let skipped = 0;
   for (const sig of pending) {
     if (sig.err) continue; // failed transactions changed nothing on chain
-    const tx = await connection.getTransaction(sig.signature, {
-      commitment: COMMITMENT,
-      maxSupportedTransactionVersion: 0,
-    });
+    const tx = await withRetry(`getTransaction ${sig.signature.slice(0, 8)}`, () =>
+      connection.getTransaction(sig.signature, {
+        commitment: COMMITMENT,
+        maxSupportedTransactionVersion: 0,
+      })
+    );
+    if (tx === null) {
+      // Leave the cursor where it is so the next pass retries this signature.
+      skipped++;
+      continue;
+    }
     events += await ingestTransaction(
       db,
       sig.signature,
@@ -116,8 +160,12 @@ export async function backfill(db: Db, connection: Connection, programId: Public
       tx?.meta?.logMessages
     );
     await setCursor(db, sig.slot, sig.signature);
+    await sleep(config.backfillDelayMs);
   }
-  console.log(`[backfill] done, ${events} event(s) applied`);
+  console.log(
+    `[backfill] done, ${events} event(s) applied` +
+      (skipped > 0 ? `, ${skipped} signature(s) deferred to the next pass` : "")
+  );
 }
 
 /** Live tail. Overlaps the backfill cursor on purpose; ingest is idempotent. */
