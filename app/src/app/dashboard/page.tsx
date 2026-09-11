@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { fetchLoans, fetchOffers, type Loan, type Offer } from "@/lib/api";
-import { formatApr, formatDuration, fromRaw, shortKey, timeLeft } from "@/lib/format";
+import {
+  formatApr,
+  formatDate,
+  formatDuration,
+  fromRaw,
+  shortKey,
+  timeLeft,
+} from "@/lib/format";
 import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
 import { cancelOffer, claimDefault, repayLoan } from "@/lib/program";
@@ -16,7 +23,9 @@ export default function DashboardPage() {
   const [lent, setLent] = useState<Loan[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [done, setDone] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [, forceTick] = useState(0);
 
   const load = useCallback(async () => {
     if (!publicKey) return;
@@ -32,8 +41,14 @@ export default function DashboardPage() {
   }, [publicKey]);
 
   useEffect(() => {
-    load().catch(() => setNote("indexer unreachable — is it running on :8080?"));
+    load().catch(() => setError("Veri sunucusuna ulaşılamıyor."));
   }, [load]);
+
+  // Keep the countdowns honest without a page refresh.
+  useEffect(() => {
+    const id = setInterval(() => forceTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   const mints = useMintInfo([
     ...borrowed.flatMap((l) => [l.principal_mint, l.collateral_mint]),
@@ -41,15 +56,18 @@ export default function DashboardPage() {
     ...offers.flatMap((o) => [o.principal_mint, o.collateral_mint]),
   ]);
 
-  async function run(key: string, fn: () => Promise<string>) {
+  async function run(key: string, label: string, fn: () => Promise<string>) {
     setBusy(key);
-    setNote(null);
+    setDone(null);
+    setError(null);
     try {
-      const sig = await fn();
-      setNote(`done — ${sig.slice(0, 16)}…`);
+      await fn();
+      setDone(label);
       setTimeout(() => load().catch(() => {}), 1500);
     } catch (e) {
-      setNote(e instanceof Error ? e.message : String(e));
+      setError(
+        `İşlem tamamlanamadı: ${e instanceof Error ? e.message : String(e)}`
+      );
     } finally {
       setBusy(null);
     }
@@ -57,150 +75,219 @@ export default function DashboardPage() {
 
   if (!publicKey) {
     return (
-      <div className="panel p-10 text-center text-sm text-muted">
-        Connect a wallet to see your positions.
+      <div className="panel p-12 text-center">
+        <p className="text-sm text-muted">
+          Pozisyonlarını görmek için sağ üstten cüzdanını bağla.
+        </p>
       </div>
     );
   }
 
-  const matured = (l: Loan) => l.maturity_ts <= Math.floor(Date.now() / 1000);
+  const now = Math.floor(Date.now() / 1000);
+  const matured = (l: Loan) => l.maturity_ts <= now;
+  const activeBorrowed = borrowed.filter((l) => l.status === "active");
+  const activeLent = lent.filter((l) => l.status === "active");
 
   return (
     <div className="space-y-8">
+      {error && (
+        <div className="panel border-red-500/40 p-4 text-sm text-red-300">{error}</div>
+      )}
+      {done && (
+        <div className="panel border-accent/40 p-4 text-sm text-accent">{done}</div>
+      )}
+
       <section>
-        <h2 className="mb-3 text-sm font-semibold">Borrowed</h2>
+        <h2 className="text-sm font-semibold">Aldığın borçlar</h2>
+        <p className="mb-3 mt-1 text-xs text-muted">
+          Vade dolmadan ödersen teminatın geri gelir. Kaçırırsan teminatın tamamı
+          karşı tarafa geçer.
+        </p>
         <div className="space-y-2">
-          {borrowed.filter((l) => l.status === "active").length === 0 && (
-            <div className="panel p-6 text-center text-sm text-muted">
-              No open loans.
+          {activeBorrowed.length === 0 && (
+            <div className="panel p-8 text-center text-sm text-muted">
+              Açık borcun yok.
             </div>
           )}
-          {borrowed
-            .filter((l) => l.status === "active")
-            .map((l) => {
-              const pDec = mints[l.principal_mint]?.decimals ?? 6;
-              const cDec = mints[l.collateral_mint]?.decimals ?? 0;
-              const due = BigInt(l.principal_amount) + BigInt(l.interest_amount);
-              const late = matured(l);
-              return (
-                <div key={l.pubkey} className="panel flex items-center gap-4 p-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">
-                      Repay {fromRaw(due, pDec)}{" "}
-                      <span className="text-muted">
-                        ({fromRaw(l.principal_amount, pDec)} +{" "}
-                        {fromRaw(l.interest_amount, pDec)} interest)
+          {activeBorrowed.map((l) => {
+            const pDec = mints[l.principal_mint]?.decimals ?? 6;
+            const cDec = mints[l.collateral_mint]?.decimals ?? 0;
+            const due = BigInt(l.principal_amount) + BigInt(l.interest_amount);
+            const late = matured(l);
+            return (
+              <article key={l.pubkey} className="panel p-5">
+                <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Ödeyeceğin</dt>
+                    <dd className="text-right font-medium sm:py-0.5">
+                      {fromRaw(due, pDec)} USDC
+                      <span className="ml-1.5 text-xs text-muted">
+                        ({fromRaw(l.principal_amount, pDec)} anapara +{" "}
+                        {fromRaw(l.interest_amount, pDec)} faiz)
                       </span>
-                    </div>
-                    <div className="mt-0.5 text-xs text-muted">
-                      {fromRaw(l.collateral_amount, cDec)}{" "}
-                      {shortKey(l.collateral_mint)} locked ·{" "}
-                      {late ? (
-                        <span className="text-red-400">
-                          matured — lender can claim at any moment
-                        </span>
-                      ) : (
-                        <>due in {timeLeft(l.maturity_ts)}</>
-                      )}
-                    </div>
+                    </dd>
                   </div>
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Kilitli teminatın</dt>
+                    <dd className="text-right sm:py-0.5">
+                      {fromRaw(l.collateral_amount, cDec)}{" "}
+                      {shortKey(l.collateral_mint)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Son ödeme</dt>
+                    <dd className="text-right sm:py-0.5">
+                      {formatDate(l.maturity_ts)}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
+                  <p className="flex-1 text-xs">
+                    {late ? (
+                      <span className="text-red-300">
+                        Vade doldu. Ödeme yapamazsın; teklif sahibi teminatına
+                        istediği an el koyabilir.
+                      </span>
+                    ) : (
+                      <span className="text-muted">{timeLeft(l.maturity_ts)}</span>
+                    )}
+                  </p>
                   <button
                     className="btn-primary shrink-0"
                     disabled={busy !== null || late}
-                    onClick={() => run(l.pubkey, () => repayLoan(program!, publicKey, l))}
-                  >
-                    {busy === l.pubkey ? "…" : "Repay"}
-                  </button>
-                </div>
-              );
-            })}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-sm font-semibold">Lent</h2>
-        <div className="space-y-2">
-          {lent.filter((l) => l.status === "active").length === 0 && (
-            <div className="panel p-6 text-center text-sm text-muted">
-              No outstanding loans.
-            </div>
-          )}
-          {lent
-            .filter((l) => l.status === "active")
-            .map((l) => {
-              const pDec = mints[l.principal_mint]?.decimals ?? 6;
-              const cDec = mints[l.collateral_mint]?.decimals ?? 0;
-              const claimable = matured(l);
-              return (
-                <div key={l.pubkey} className="panel flex items-center gap-4 p-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">
-                      {fromRaw(l.principal_amount, pDec)} out to {shortKey(l.borrower)}
-                    </div>
-                    <div className="mt-0.5 text-xs text-muted">
-                      {fromRaw(l.collateral_amount, cDec)} {shortKey(l.collateral_mint)}{" "}
-                      held ·{" "}
-                      {claimable ? (
-                        <span className="text-accent">matured unpaid — claimable</span>
-                      ) : (
-                        <>matures in {timeLeft(l.maturity_ts)}</>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    className="btn-ghost shrink-0"
-                    disabled={busy !== null || !claimable}
                     onClick={() =>
-                      run(l.pubkey, () => claimDefault(program!, publicKey, l))
+                      run(
+                        l.pubkey,
+                        "Borcun kapandı, teminatın cüzdanına geri döndü.",
+                        () => repayLoan(program!, publicKey, l)
+                      )
                     }
                   >
-                    {busy === l.pubkey ? "…" : "Claim collateral"}
+                    {busy === l.pubkey ? "İşleniyor…" : "Borcu Öde"}
                   </button>
                 </div>
-              );
-            })}
-        </div>
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-sm font-semibold">My offers</h2>
-        <div className="space-y-2">
-          {offers.length === 0 && (
-            <div className="panel p-6 text-center text-sm text-muted">
-              No live offers.
-            </div>
-          )}
-          {offers.map((o) => {
-            const pDec = mints[o.principal_mint]?.decimals ?? 6;
-            return (
-              <div key={o.pubkey} className="panel flex items-center gap-4 p-4">
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium">
-                    {fromRaw(o.principal_available, pDec)} undrawn of{" "}
-                    {fromRaw(o.principal_total, pDec)}
-                  </div>
-                  <div className="mt-0.5 text-xs text-muted">
-                    vs {shortKey(o.collateral_mint)} · {formatApr(o.apr_bps)} ·{" "}
-                    {formatDuration(o.duration_seconds)} · {o.loans_opened} loan
-                    {o.loans_opened === 1 ? "" : "s"} drawn
-                  </div>
-                </div>
-                <button
-                  className="btn-ghost shrink-0"
-                  disabled={busy !== null}
-                  onClick={() => run(o.pubkey, () => cancelOffer(program!, publicKey, o))}
-                >
-                  {busy === o.pubkey ? "…" : "Cancel"}
-                </button>
-              </div>
+              </article>
             );
           })}
         </div>
       </section>
 
-      {note && (
-        <div className="panel border-accent/30 p-3 text-xs text-muted break-all">{note}</div>
-      )}
+      <section>
+        <h2 className="text-sm font-semibold">Verdiğin borçlar</h2>
+        <p className="mb-3 mt-1 text-xs text-muted">
+          Vade dolduğunda karşı taraf ödemediyse teminata el koyabilirsin. Eline
+          USDC değil, teminat token'ının kendisi geçer.
+        </p>
+        <div className="space-y-2">
+          {activeLent.length === 0 && (
+            <div className="panel p-8 text-center text-sm text-muted">
+              Verdiğin açık borç yok.
+            </div>
+          )}
+          {activeLent.map((l) => {
+            const pDec = mints[l.principal_mint]?.decimals ?? 6;
+            const cDec = mints[l.collateral_mint]?.decimals ?? 0;
+            const claimable = matured(l);
+            return (
+              <article key={l.pubkey} className="panel p-5">
+                <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Verdiğin</dt>
+                    <dd className="text-right font-medium sm:py-0.5">
+                      {fromRaw(l.principal_amount, pDec)} USDC
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Tuttuğun teminat</dt>
+                    <dd className="text-right sm:py-0.5">
+                      {fromRaw(l.collateral_amount, cDec)}{" "}
+                      {shortKey(l.collateral_mint)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Borçlu</dt>
+                    <dd className="text-right sm:py-0.5">{shortKey(l.borrower)}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Vade</dt>
+                    <dd className="text-right sm:py-0.5">
+                      {formatDate(l.maturity_ts)}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
+                  <p className="flex-1 text-xs">
+                    {claimable ? (
+                      <span className="text-accent">
+                        Vade doldu ve ödenmedi — teminata el koyabilirsin.
+                      </span>
+                    ) : (
+                      <span className="text-muted">{timeLeft(l.maturity_ts)}</span>
+                    )}
+                  </p>
+                  <button
+                    className="btn-ghost shrink-0"
+                    disabled={busy !== null || !claimable}
+                    onClick={() =>
+                      run(
+                        l.pubkey,
+                        "Teminata el koydun, token cüzdanına geçti.",
+                        () => claimDefault(program!, publicKey, l)
+                      )
+                    }
+                  >
+                    {busy === l.pubkey ? "İşleniyor…" : "Teminata El Koy"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-semibold">Açtığın teklifler</h2>
+        <p className="mb-3 mt-1 text-xs text-muted">
+          İptal edersen sadece henüz çekilmemiş kısım geri döner. Çekilmiş
+          krediler etkilenmez.
+        </p>
+        <div className="space-y-2">
+          {offers.length === 0 && (
+            <div className="panel p-8 text-center text-sm text-muted">
+              Açık teklifin yok.
+            </div>
+          )}
+          {offers.map((o) => {
+            const pDec = mints[o.principal_mint]?.decimals ?? 6;
+            return (
+              <article key={o.pubkey} className="panel flex items-center gap-4 p-5">
+                <div className="min-w-0 flex-1 text-sm">
+                  <div className="font-medium">
+                    {fromRaw(o.principal_available, pDec)} /{" "}
+                    {fromRaw(o.principal_total, pDec)} USDC çekilmeyi bekliyor
+                  </div>
+                  <div className="mt-1 text-xs text-muted">
+                    {shortKey(o.collateral_mint)} teminatına karşılık ·{" "}
+                    {formatApr(o.apr_bps)} · {formatDuration(o.duration_seconds)} ·{" "}
+                    {o.loans_opened} kredi çekilmiş
+                  </div>
+                </div>
+                <button
+                  className="btn-ghost shrink-0"
+                  disabled={busy !== null}
+                  onClick={() =>
+                    run(o.pubkey, "Teklif iptal edildi, kalan paran döndü.", () =>
+                      cancelOffer(program!, publicKey, o)
+                    )
+                  }
+                >
+                  {busy === o.pubkey ? "İşleniyor…" : "İptal Et"}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+      </section>
     </div>
   );
 }

@@ -5,12 +5,13 @@ import { Nav } from "@/components/Nav";
 
 export const metadata: Metadata = {
   title: "memebook",
-  description: "Fixed-term lending against long-tail Solana tokens. No oracles, no liquidations.",
+  description:
+    "Token'ını satmadan nakde çevir. Vadeli borçlanma, likidasyon yok.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="tr">
       <body>
         <Providers>
           <Nav />

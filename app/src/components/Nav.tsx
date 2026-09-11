@@ -10,9 +10,9 @@ const WalletButton = dynamic(
 );
 
 const TABS = [
-  { href: "/", label: "Borrow" },
-  { href: "/lend", label: "Lend" },
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/", label: "Borç Al" },
+  { href: "/lend", label: "Borç Ver" },
+  { href: "/dashboard", label: "Panelim" },
 ];
 
 export function Nav() {
