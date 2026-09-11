@@ -94,7 +94,7 @@ export default function LendPage() {
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
           Riski bir kez, teklifi yazarken fiyatlıyorsun. Sonrasında hiçbir şey
-          takip edilmiyor. Borçlu ödemezse eline USDC değil,{" "}
+          takip edilmiyor. Borçlu ödemezse eline nakit değil,{" "}
           <span className="text-neutral-200">teminat token'ının kendisi</span>{" "}
           geçer — onu satmak senin işin ve zararına satman mümkün.
         </p>
@@ -150,7 +150,7 @@ export default function LendPage() {
                   <td className="px-5 py-3">
                     {m.apr_median === null ? "—" : formatApr(Math.round(m.apr_median))}
                   </td>
-                  <td className="px-5 py-3">{fromRaw(m.ask_total, 6)} USDC</td>
+                  <td className="px-5 py-3">{fromRaw(m.ask_total, 6)}</td>
                   <td className="px-5 py-3">{m.active_loans}</td>
                   <td className="px-5 py-3">
                     %{(m.utilization_bps / 100).toFixed(1).replace(".", ",")}
@@ -180,10 +180,10 @@ export default function LendPage() {
               className="field font-mono text-xs"
               value={form.principalMint}
               onChange={set("principalMint")}
-              placeholder="USDC mint adresi"
+              placeholder="stablecoin mint adresi"
             />
             <p className="mt-1.5 text-xs text-muted">
-              Borçluya ödeyeceğin token. Genelde USDC.
+              Borçluya ödeyeceğin token. Genelde bir stablecoin.
             </p>
           </div>
 

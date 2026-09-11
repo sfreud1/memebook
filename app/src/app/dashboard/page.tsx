@@ -178,7 +178,7 @@ export default function DashboardPage() {
         <h2 className="text-sm font-semibold">Verdiğin borçlar</h2>
         <p className="mb-3 mt-1 text-xs text-muted">
           Vade dolduğunda karşı taraf ödemediyse teminata el koyabilirsin. Eline
-          USDC değil, teminat token'ının kendisi geçer.
+          nakit değil, teminat token'ının kendisi geçer.
         </p>
         <div className="space-y-2">
           {activeLent.length === 0 && (

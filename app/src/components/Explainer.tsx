@@ -7,7 +7,7 @@ const ITEMS = [
     q: "Burada tam olarak ne oluyor?",
     a: `Elindeki bir token'ı satmadan nakit almanı sağlıyor.
 
-Token'ını teminat olarak kilitliyorsun, karşılığında USDC alıyorsun. Vade dolmadan borcunu ödersen token'ın geri geliyor. Ödemezsen token'ın parayı veren kişiye geçiyor, aldığın USDC sende kalıyor.
+Token'ını teminat olarak kilitliyorsun, karşılığında nakit (stablecoin) alıyorsun. Vade dolmadan borcunu ödersen token'ın geri geliyor. Ödemezsen token'ın parayı veren kişiye geçiyor, aldığın para sende kalıyor.
 
 Yani pozisyonunu bozmadan nakde çıkıyorsun.`,
   },

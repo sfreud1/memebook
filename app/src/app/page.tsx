@@ -130,7 +130,7 @@ export default function BorrowPage() {
           <span className="text-accent">nakde çevir.</span>
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-          Elindeki token'ı teminat olarak kilitliyorsun, karşılığında USDC
+          Elindeki token'ı teminat olarak kilitliyorsun, karşılığında nakit
           alıyorsun. Vade dolmadan ödersen token'ın geri geliyor. Fiyat ne
           yaparsa yapsın vade boyunca kimse teminatına dokunamaz —{" "}
           <span className="text-neutral-200">likidasyon yok.</span>
@@ -149,7 +149,7 @@ export default function BorrowPage() {
                 inputMode="decimal"
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">
-                USDC
+                {tokenSymbol(principalMint)}
               </span>
             </div>
             <p className="mt-1.5 text-xs text-muted">

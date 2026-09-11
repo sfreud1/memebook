@@ -10,6 +10,9 @@ import {
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
+  SystemProgram,
+  Transaction,
+  sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -45,14 +48,33 @@ async function main() {
     memeMint ??= offers[0].collateral_mint;
   }
 
-  // Local validator hands out SOL freely; a couple hundred covers any amount
-  // of clicking around.
-  const sig = await connection.requestAirdrop(owner, 100 * LAMPORTS_PER_SOL);
-  await connection.confirmTransaction(
-    { signature: sig, ...(await connection.getLatestBlockhash()) },
-    "confirmed"
-  );
-  console.log(`SOL      100`);
+  // A local validator hands out SOL freely. Devnet's faucet is rate limited to
+  // the point of being unusable, so fall back to transferring from the wallet
+  // that funded the deployment.
+  const requested = Number(process.env.SOL_AMOUNT ?? 0) || (RPC.includes("127.0.0.1") ? 100 : 0.3);
+  let funded = false;
+  try {
+    const sig = await connection.requestAirdrop(owner, requested * LAMPORTS_PER_SOL);
+    await connection.confirmTransaction(
+      { signature: sig, ...(await connection.getLatestBlockhash()) },
+      "confirmed"
+    );
+    funded = true;
+    console.log(`SOL      ${requested}  (airdrop)`);
+  } catch {
+    /* fall through to a transfer */
+  }
+  if (!funded) {
+    const tx = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: payer.publicKey,
+        toPubkey: owner,
+        lamports: Math.round(requested * LAMPORTS_PER_SOL),
+      })
+    );
+    await sendAndConfirmTransaction(connection, tx, [payer], { commitment: "confirmed" });
+    console.log(`SOL      ${requested}  (transfer from ${payer.publicKey.toBase58().slice(0, 8)}…)`);
+  }
 
   for (const [label, mintStr, whole] of [
     ["USDC", usdcMint!, 100_000n],
