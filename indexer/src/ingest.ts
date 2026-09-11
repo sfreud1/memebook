@@ -1,10 +1,27 @@
 import { Connection, PublicKey, type ConfirmedSignatureInfo } from "@solana/web3.js";
+import bs58 from "bs58";
 import type { Db } from "./db.js";
 import { decodeEvents, plain } from "./decoder.js";
 import { applyEvent } from "./projections.js";
 import { config } from "./config.js";
 
 const COMMITMENT = "confirmed" as const;
+
+/**
+ * A log notification can arrive carrying the all-zero placeholder signature
+ * (`1111…`) rather than a real one — a simulated or not-yet-signed transaction.
+ * Projecting those creates loans and offers that exist in the database and
+ * nowhere on chain, which is worse than missing them: the UI then shows
+ * positions nobody can settle.
+ */
+function isRealSignature(signature: string): boolean {
+  try {
+    const raw = bs58.decode(signature);
+    return raw.length === 64 && raw.some((b) => b !== 0);
+  } catch {
+    return false;
+  }
+}
 
 async function getCursor(db: Db) {
   const rows = await db.query<{ last_slot: string; last_signature: string | null }>(
@@ -28,6 +45,10 @@ async function ingestTransaction(
   blockTime: number | null,
   logs: string[] | null | undefined
 ) {
+  if (!isRealSignature(signature)) {
+    console.warn(`[ingest] ignoring notification with placeholder signature ${signature}`);
+    return 0;
+  }
   const events = decodeEvents(logs);
   if (events.length === 0) return 0;
 

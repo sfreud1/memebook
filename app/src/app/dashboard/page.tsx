@@ -13,7 +13,8 @@ import {
 } from "@/lib/format";
 import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
-import { cancelOffer, claimDefault, repayLoan } from "@/lib/program";
+import { cancelOffer, claimDefault, repayLoan, prepare, type TxPrep } from "@/lib/program";
+import { PublicKey } from "@solana/web3.js";
 import { TokenBadge } from "@/components/TokenBadge";
 import { tokenSymbol } from "@/lib/tokens";
 
@@ -28,6 +29,7 @@ export default function DashboardPage() {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, forceTick] = useState(0);
+  const [preps, setPreps] = useState<Record<string, TxPrep>>({});
 
   const load = useCallback(async () => {
     if (!publicKey) return;
@@ -58,12 +60,49 @@ export default function DashboardPage() {
     ...offers.flatMap((o) => [o.principal_mint, o.collateral_mint]),
   ]);
 
-  async function run(key: string, label: string, fn: () => Promise<string>) {
+  // Same reason as the borrow screen: the wallet popup only opens reliably when
+  // the click handler has nothing left to await before asking for a signature.
+  useEffect(() => {
+    if (!program) return;
+    const pairs = new Map<string, [string, string]>();
+    for (const l of [...borrowed, ...lent]) {
+      pairs.set(`${l.principal_mint}:${l.collateral_mint}`, [l.principal_mint, l.collateral_mint]);
+    }
+    let cancelled = false;
+    (async () => {
+      for (const [key, [p, c]] of pairs) {
+        if (preps[key]) continue;
+        try {
+          const prep = await prepare(program, new PublicKey(p), new PublicKey(c));
+          if (!cancelled) setPreps((cur) => ({ ...cur, [key]: prep }));
+        } catch {
+          /* leave it unprepared; the action falls back to loading on demand */
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [program, borrowed, lent]);
+
+  const prepFor = (l: { principal_mint: string; collateral_mint: string }) =>
+    preps[`${l.principal_mint}:${l.collateral_mint}`];
+
+  async function run(key: string, label: string, fn: () => Promise<unknown>) {
     setBusy(key);
     setDone(null);
     setError(null);
     try {
-      await fn();
+      await Promise.race([
+        fn(),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Cüzdan yanıt vermedi. Phantom penceresi açıldı mı?")),
+            90_000
+          )
+        ),
+      ]);
       setDone(label);
       setTimeout(() => load().catch(() => {}), 1500);
     } catch (e) {
@@ -161,11 +200,11 @@ export default function DashboardPage() {
                       run(
                         l.pubkey,
                         "Borcun kapandı, teminatın cüzdanına geri döndü.",
-                        () => repayLoan(program!, publicKey, l)
+                        () => repayLoan(program!, publicKey, l, prepFor(l))
                       )
                     }
                   >
-                    {busy === l.pubkey ? "İşleniyor…" : "Borcu Öde"}
+                    {busy === l.pubkey ? "Cüzdanı onayla…" : "Borcu Öde"}
                   </button>
                 </div>
               </article>
@@ -239,7 +278,7 @@ export default function DashboardPage() {
                       )
                     }
                   >
-                    {busy === l.pubkey ? "İşleniyor…" : "Teminata El Koy"}
+                    {busy === l.pubkey ? "Cüzdanı onayla…" : "Teminata El Koy"}
                   </button>
                 </div>
               </article>

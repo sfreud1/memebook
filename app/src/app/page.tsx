@@ -18,7 +18,8 @@ import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
 import { useConfig } from "@/lib/useConfig";
 import { useTokenBalance } from "@/lib/useTokenBalance";
-import { acceptOffer } from "@/lib/program";
+import { acceptOffer, prepare, type TxPrep } from "@/lib/program";
+import { PublicKey } from "@solana/web3.js";
 import { Explainer } from "@/components/Explainer";
 import { TokenBadge } from "@/components/TokenBadge";
 import { tokenSymbol } from "@/lib/tokens";
@@ -43,6 +44,7 @@ export default function BorrowPage() {
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const [prep, setPrep] = useState<TxPrep | null>(null);
 
   useEffect(() => {
     let stop = false;
@@ -90,6 +92,25 @@ export default function BorrowPage() {
 
   const collateralBalance = useTokenBalance(collateral, busy);
 
+  // Warm the on-chain lookups now. Doing them inside the click handler costs a
+  // couple of seconds, and the wallet's approval popup is suppressed once the
+  // browser no longer considers the call part of the user's gesture.
+  useEffect(() => {
+    let cancelled = false;
+    setPrep(null);
+    if (!program || !principalMint || !collateral) return;
+    prepare(program, new PublicKey(principalMint), new PublicKey(collateral))
+      .then((p) => {
+        if (!cancelled) setPrep(p);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Zincir bilgileri okunamadı. Ağ bağlantını kontrol et.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [program, principalMint, collateral]);
+
   const drawRaw = useMemo(() => {
     try {
       return toRaw(amount || "0", pDec);
@@ -104,7 +125,16 @@ export default function BorrowPage() {
     setDone(null);
     setError(null);
     try {
-      await acceptOffer(program, publicKey, o, drawRaw);
+      // If the signature never comes back the button must not spin forever.
+      await Promise.race([
+        acceptOffer(program, publicKey, o, drawRaw, prep ?? undefined),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Cüzdan yanıt vermedi. Phantom penceresi açıldı mı?")),
+            90_000
+          )
+        ),
+      ]);
       setDone(
         "Borcun açıldı. Teminatın kilitlendi, para cüzdanına geçti. Panelinden takip edebilirsin."
       );
@@ -325,10 +355,15 @@ export default function BorrowPage() {
                 </p>
                 <button
                   className="btn-primary shrink-0"
-                  disabled={!usable || !program || busy !== null}
+                  disabled={!usable || !program || !prep || busy !== null}
                   onClick={() => onBorrow(o)}
+                  title={!prep && program ? "Zincir bilgileri okunuyor…" : undefined}
                 >
-                  {busy === o.pubkey ? "İşleniyor…" : "Borç Al"}
+                  {busy === o.pubkey
+                    ? "Cüzdanı onayla…"
+                    : !prep && program
+                      ? "Hazırlanıyor…"
+                      : "Borç Al"}
                 </button>
               </div>
             </article>

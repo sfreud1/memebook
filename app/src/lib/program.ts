@@ -109,6 +109,39 @@ export async function createOffer(
     .rpc();
 }
 
+/**
+ * Everything an instruction needs that has to be read from chain first.
+ *
+ * These lookups must happen *before* the user clicks. A wallet extension opens
+ * its approval window as a popup, and browsers only allow that close to a real
+ * user gesture — a couple of seconds of awaits in the click handler and the
+ * window is silently suppressed, leaving the app waiting on a signature that
+ * can never arrive.
+ */
+export interface TxPrep {
+  feeRecipient: PublicKey;
+  principalTokenProgram: PublicKey;
+  collateralTokenProgram: PublicKey;
+}
+
+export async function prepare(
+  program: Program,
+  principalMint: PublicKey,
+  collateralMint: PublicKey
+): Promise<TxPrep> {
+  const connection = program.provider.connection;
+  const [cfg, principalTokenProgram, collateralTokenProgram] = await Promise.all([
+    fetchConfig(program),
+    tokenProgramFor(connection, principalMint),
+    tokenProgramFor(connection, collateralMint),
+  ]);
+  return {
+    feeRecipient: cfg.feeRecipient,
+    principalTokenProgram,
+    collateralTokenProgram,
+  };
+}
+
 export async function acceptOffer(
   program: Program,
   borrower: PublicKey,
@@ -117,16 +150,15 @@ export async function acceptOffer(
     principal_mint: string;
     collateral_mint: string;
   },
-  drawAmount: bigint
+  drawAmount: bigint,
+  prep?: TxPrep
 ) {
-  const connection = program.provider.connection;
-  const cfg = await fetchConfig(program);
   const principalMint = new PublicKey(offer.principal_mint);
   const collateralMint = new PublicKey(offer.collateral_mint);
   const offerKey = new PublicKey(offer.pubkey);
 
-  const principalTokenProgram = await tokenProgramFor(connection, principalMint);
-  const collateralTokenProgram = await tokenProgramFor(connection, collateralMint);
+  const { feeRecipient, principalTokenProgram, collateralTokenProgram } =
+    prep ?? (await prepare(program, principalMint, collateralMint));
 
   const loanId = randomId();
   const loan = loanPda(borrower, loanId);
@@ -144,8 +176,8 @@ export async function acceptOffer(
       loanCollateralVault: loanVaultPda(loan),
       borrowerCollateralAccount: ata(collateralMint, borrower, collateralTokenProgram),
       borrowerPrincipalAccount: ata(principalMint, borrower, principalTokenProgram),
-      feeRecipient: cfg.feeRecipient,
-      feePrincipalAccount: ata(principalMint, cfg.feeRecipient, principalTokenProgram),
+      feeRecipient,
+      feePrincipalAccount: ata(principalMint, feeRecipient, principalTokenProgram),
       principalTokenProgram,
       collateralTokenProgram,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -162,24 +194,23 @@ export async function repayLoan(
     lender: string;
     principal_mint: string;
     collateral_mint: string;
-  }
+  },
+  prep?: TxPrep
 ) {
-  const connection = program.provider.connection;
-  const cfg = await fetchConfig(program);
   const principalMint = new PublicKey(loan.principal_mint);
   const collateralMint = new PublicKey(loan.collateral_mint);
   const lender = new PublicKey(loan.lender);
   const loanKey = new PublicKey(loan.pubkey);
 
-  const principalTokenProgram = await tokenProgramFor(connection, principalMint);
-  const collateralTokenProgram = await tokenProgramFor(connection, collateralMint);
+  const { feeRecipient, principalTokenProgram, collateralTokenProgram } =
+    prep ?? (await prepare(program, principalMint, collateralMint));
 
   return program.methods
     .repay()
     .accountsPartial({
       borrower,
       lender,
-      feeRecipient: cfg.feeRecipient,
+      feeRecipient,
       config: configPda(),
       loan: loanKey,
       principalMint,
@@ -188,7 +219,7 @@ export async function repayLoan(
       borrowerPrincipalAccount: ata(principalMint, borrower, principalTokenProgram),
       borrowerCollateralAccount: ata(collateralMint, borrower, collateralTokenProgram),
       lenderPrincipalAccount: ata(principalMint, lender, principalTokenProgram),
-      feePrincipalAccount: ata(principalMint, cfg.feeRecipient, principalTokenProgram),
+      feePrincipalAccount: ata(principalMint, feeRecipient, principalTokenProgram),
       principalTokenProgram,
       collateralTokenProgram,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -200,27 +231,28 @@ export async function repayLoan(
 export async function claimDefault(
   program: Program,
   lender: PublicKey,
-  loan: { pubkey: string; borrower: string; collateral_mint: string }
+  loan: { pubkey: string; borrower: string; collateral_mint: string },
+  prep?: TxPrep
 ) {
-  const connection = program.provider.connection;
-  const cfg = await fetchConfig(program);
   const collateralMint = new PublicKey(loan.collateral_mint);
   const borrower = new PublicKey(loan.borrower);
   const loanKey = new PublicKey(loan.pubkey);
-  const collateralTokenProgram = await tokenProgramFor(connection, collateralMint);
+
+  const { feeRecipient, collateralTokenProgram } =
+    prep ?? (await prepare(program, collateralMint, collateralMint));
 
   return program.methods
     .claimDefault()
     .accountsPartial({
       lender,
       borrower,
-      feeRecipient: cfg.feeRecipient,
+      feeRecipient,
       config: configPda(),
       loan: loanKey,
       collateralMint,
       loanCollateralVault: loanVaultPda(loanKey),
       lenderCollateralAccount: ata(collateralMint, lender, collateralTokenProgram),
-      feeCollateralAccount: ata(collateralMint, cfg.feeRecipient, collateralTokenProgram),
+      feeCollateralAccount: ata(collateralMint, feeRecipient, collateralTokenProgram),
       collateralTokenProgram,
       associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       systemProgram: SystemProgram.programId,
