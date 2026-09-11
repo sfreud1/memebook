@@ -16,7 +16,7 @@ import { useProgram } from "@/lib/useProgram";
 import { cancelOffer, claimDefault, repayLoan, prepare, type TxPrep } from "@/lib/program";
 import { PublicKey } from "@solana/web3.js";
 import { TokenBadge } from "@/components/TokenBadge";
-import { tokenSymbol } from "@/lib/tokens";
+import { tokenSymbol, usdValue, formatUsd } from "@/lib/tokens";
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
@@ -155,6 +155,14 @@ export default function DashboardPage() {
             const cDec = mints[l.collateral_mint]?.decimals ?? 0;
             const due = BigInt(l.principal_amount) + BigInt(l.interest_amount);
             const late = matured(l);
+            // Display-only: the program holds no price feed, this is here so a
+            // borrower can see where their position stands.
+            const collUsd = usdValue(BigInt(l.collateral_amount), cDec, l.collateral_mint);
+            const dueUsd = usdValue(due, pDec, l.principal_mint);
+            const ltv =
+              collUsd && collUsd > 0 && dueUsd !== undefined
+                ? (dueUsd / collUsd) * 100
+                : undefined;
             return (
               <article key={l.pubkey} className="panel p-5">
                 <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
@@ -181,7 +189,26 @@ export default function DashboardPage() {
                       {formatDate(l.maturity_ts)}
                     </dd>
                   </div>
+                  {ltv !== undefined && (
+                    <div className="flex justify-between gap-3 sm:contents">
+                      <dt className="text-muted sm:py-0.5">Teminat oranı</dt>
+                      <dd className="text-right sm:py-0.5">
+                        <span className={ltv >= 100 ? "text-red-300" : ""}>
+                          %{ltv.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}
+                        </span>
+                        <span className="ml-1.5 text-xs text-muted">
+                          ({formatUsd(collUsd!)} teminat)
+                        </span>
+                      </dd>
+                    </div>
+                  )}
                 </dl>
+                {ltv !== undefined && ltv >= 100 && (
+                  <p className="mt-3 rounded-lg bg-ink/60 px-3 py-2 text-xs leading-relaxed text-muted">
+                    Teminatın artık borcundan az değerli. Ödemeyip teminatı
+                    bırakmak matematiksel olarak daha kârlı — karar senin.
+                  </p>
+                )}
                 <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
                   <p className="flex-1 text-xs">
                     {late ? (
@@ -229,6 +256,18 @@ export default function DashboardPage() {
             const pDec = mints[l.principal_mint]?.decimals ?? 6;
             const cDec = mints[l.collateral_mint]?.decimals ?? 0;
             const claimable = matured(l);
+            const collUsd = usdValue(BigInt(l.collateral_amount), cDec, l.collateral_mint);
+            const owedUsd = usdValue(
+              BigInt(l.principal_amount) + BigInt(l.interest_amount),
+              pDec,
+              l.principal_mint
+            );
+            // How much collateral stands behind what is owed. Under 100% the
+            // lender is already underwater if the borrower walks.
+            const cover =
+              owedUsd && owedUsd > 0 && collUsd !== undefined
+                ? (collUsd / owedUsd) * 100
+                : undefined;
             return (
               <article key={l.pubkey} className="panel p-5">
                 <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
@@ -256,6 +295,19 @@ export default function DashboardPage() {
                       {formatDate(l.maturity_ts)}
                     </dd>
                   </div>
+                  {cover !== undefined && (
+                    <div className="flex justify-between gap-3 sm:contents">
+                      <dt className="text-muted sm:py-0.5">Teminat karşılığı</dt>
+                      <dd className="text-right sm:py-0.5">
+                        <span className={cover < 100 ? "text-red-300" : "text-accent"}>
+                          %{cover.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}
+                        </span>
+                        <span className="ml-1.5 text-xs text-muted">
+                          ({formatUsd(collUsd!)} / {formatUsd(owedUsd!)} alacak)
+                        </span>
+                      </dd>
+                    </div>
+                  )}
                 </dl>
                 <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
                   <p className="flex-1 text-xs">

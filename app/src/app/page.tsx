@@ -22,7 +22,7 @@ import { acceptOffer, prepare, type TxPrep } from "@/lib/program";
 import { PublicKey } from "@solana/web3.js";
 import { Explainer } from "@/components/Explainer";
 import { TokenBadge } from "@/components/TokenBadge";
-import { tokenSymbol } from "@/lib/tokens";
+import { tokenSymbol, usdValue, formatUsd } from "@/lib/tokens";
 
 const SURELER = [
   { label: "7 güne kadar", seconds: 7 * 86_400 },
@@ -275,6 +275,21 @@ export default function BorrowPage() {
           const repay = drawRaw + interest;
           const dueAt = Math.floor(Date.now() / 1000) + o.duration_seconds;
 
+          // Display-only. The program never reads a price; this exists so two
+          // offers denominated in different tokens can be compared by eye.
+          const collateralUsd = usdValue(need, cDec, o.collateral_mint);
+          const repayUsd = usdValue(repay, pDec, o.principal_mint);
+          const ltv =
+            collateralUsd && collateralUsd > 0 && repayUsd !== undefined
+              ? (usdValue(drawRaw, pDec, o.principal_mint)! / collateralUsd) * 100
+              : undefined;
+          // Below this the debt exceeds the collateral, and walking away is the
+          // cheaper choice — the number a borrower actually needs.
+          const breakEvenDrop =
+            collateralUsd && collateralUsd > 0 && repayUsd !== undefined
+              ? ((collateralUsd - repayUsd) / collateralUsd) * 100
+              : undefined;
+
           const available = BigInt(o.principal_available);
           const enoughLiquidity =
             drawRaw > 0n &&
@@ -332,7 +347,29 @@ export default function BorrowPage() {
                   <dt className="text-muted sm:py-0.5">Son ödeme tarihi</dt>
                   <dd className="text-right sm:py-0.5">{formatDate(dueAt)}</dd>
                 </div>
+                {ltv !== undefined && (
+                  <div className="flex justify-between gap-3 sm:contents">
+                    <dt className="text-muted sm:py-0.5">Teminat oranı (LTV)</dt>
+                    <dd className="text-right sm:py-0.5">
+                      %{ltv.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}
+                      <span className="ml-1.5 text-xs text-muted">
+                        ({formatUsd(collateralUsd!)} teminat)
+                      </span>
+                    </dd>
+                  </div>
+                )}
               </dl>
+
+              {breakEvenDrop !== undefined && breakEvenDrop > 0 && (
+                <p className="mt-3 rounded-lg bg-ink/60 px-3 py-2 text-xs leading-relaxed text-muted">
+                  {tokenSymbol(o.collateral_mint)}{" "}
+                  <span className="font-medium text-neutral-200">
+                    %{breakEvenDrop.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}
+                  </span>{" "}
+                  düşerse borcun teminatından değerli hale gelir — o noktadan
+                  sonra ödememek daha kârlı olur.
+                </p>
+              )}
 
               <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
                 <p className="flex-1 text-xs leading-relaxed text-muted">
