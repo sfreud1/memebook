@@ -9,7 +9,7 @@ import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
 import { createOffer } from "@/lib/program";
 import { TokenBadge } from "@/components/TokenBadge";
-import { knownTokens, defaultPair, tokenSymbol } from "@/lib/tokens";
+import { knownTokens, defaultPair, tokenSymbol, tokenPrice } from "@/lib/tokens";
 
 const UNIT_SECONDS: Record<string, number> = {
   dakika: 60,
@@ -79,6 +79,16 @@ export default function LendPage() {
 
   const setUnit = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLSelectElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const principalPick =
+    form.principalMint === "__custom__" ? customPrincipal.trim() : form.principalMint;
+  const collateralPick =
+    form.collateralMint === "__custom__" ? customCollateral.trim() : form.collateralMint;
+  const sameToken = !!principalPick && principalPick === collateralPick;
+  // Lending out something that is not a stablecoin is allowed but unusual, and
+  // is what picking the wrong dropdown looks like.
+  const oddPrincipal =
+    !!principalPick && !/^t?usd/i.test(tokenSymbol(principalPick));
 
   const durationSeconds = toSeconds(form.duration, form.durationUnit);
   // Mirrors the program's own bounds so the form refuses what the chain would.
@@ -348,7 +358,40 @@ export default function LendPage() {
           </div>
         </div>
 
-        <div className="mt-5 flex items-center gap-4 border-t border-edge pt-4">
+        {/* Say back what is about to be published. The two pickers hold the
+            same token list and sit side by side, so the easiest mistake is
+            putting the collateral in the money field — which produces a
+            perfectly valid offer that is not the one anybody meant. */}
+        <div className="mt-5 rounded-lg border border-edge bg-ink/60 p-4 text-sm leading-relaxed">
+          <p>
+            <span className="text-muted">Vereceğin:</span>{" "}
+            <span className="font-medium">
+              {form.principalTotal} {tokenSymbol(principalPick)}
+            </span>
+            {" · "}
+            <span className="text-muted">karşılığında alacağın teminat:</span>{" "}
+            <span className="font-medium">
+              {form.collateralTotal} {tokenSymbol(collateralPick)}
+            </span>
+          </p>
+          <p className="mt-1 text-muted">
+            {formatApr(Math.round(Number(form.apr.replace(",", ".")) * 100) || 0)} yıllık
+            faiz · {formatDuration(durationSeconds || 0)} vade
+          </p>
+          {sameToken && (
+            <p className="mt-2 text-red-300">
+              Verdiğin para ile teminat aynı token. Biri diğerinden farklı olmalı.
+            </p>
+          )}
+          {!sameToken && oddPrincipal && (
+            <p className="mt-2 text-amber-300">
+              Dikkat: {tokenSymbol(principalPick)} dağıtıyorsun, stablecoin değil.
+              İki kutuyu karıştırmış olabilir misin?
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
           <p className="flex-1 text-xs leading-relaxed text-muted">
             Teklifi açtığın anda paran kilitlenir. Çekilmeyen kısmı istediğin an
             iptal edip geri alabilirsin; çekilmiş krediler vadesine kadar devam eder.
@@ -362,7 +405,8 @@ export default function LendPage() {
               !form.collateralMint ||
               (form.principalMint === "__custom__" && !customPrincipal.trim()) ||
               (form.collateralMint === "__custom__" && !customCollateral.trim()) ||
-              !durationValid
+              !durationValid ||
+              sameToken
             }
             onClick={onCreate}
           >
