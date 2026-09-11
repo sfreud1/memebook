@@ -1,8 +1,17 @@
 use anchor_lang::prelude::*;
 
+/// Layout version, written on every account this program creates.
+///
+/// Changing an account's size after launch strands every existing account:
+/// the upgraded program can no longer deserialise them, and settlement needs
+/// to. A version byte is what lets a future program tell old accounts from new
+/// and migrate them explicitly instead of failing on them.
+pub const ACCOUNT_VERSION: u8 = 1;
+
 #[account]
 #[derive(InitSpace)]
 pub struct Config {
+    pub version: u8,
     pub admin: Pubkey,
     /// Two-step admin handover. Zero when no transfer is pending.
     pub pending_admin: Pubkey,
@@ -23,6 +32,7 @@ pub struct Config {
 #[account]
 #[derive(InitSpace)]
 pub struct Offer {
+    pub version: u8,
     pub lender: Pubkey,
     pub principal_mint: Pubkey,
     pub collateral_mint: Pubkey,
@@ -57,6 +67,7 @@ pub enum LoanStatus {
 #[account]
 #[derive(InitSpace)]
 pub struct Loan {
+    pub version: u8,
     pub borrower: Pubkey,
     pub lender: Pubkey,
     pub offer: Pubkey,

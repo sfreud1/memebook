@@ -52,5 +52,9 @@ pub struct AccountAddresses {
 
     pub payer: AddressStorage,
 
+    pub program: AddressStorage,
+
+    pub program_data: AddressStorage,
+
     pub admin: AddressStorage,
 }

@@ -22,6 +22,7 @@ import {
   nowTs,
   sleep,
   expectFailure,
+  programDataPda,
 } from "./helpers";
 
 /**
@@ -142,6 +143,8 @@ describe("invariants", () => {
       .accountsPartial({
         payer: payer.publicKey,
         config: configPda,
+        program: program.programId,
+        programData: programDataPda(program.programId),
         systemProgram: SystemProgram.programId,
       })
       .signers([payer])

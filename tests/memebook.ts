@@ -17,6 +17,7 @@ import {
   nowTs,
   sleep,
   expectFailure,
+  programDataPda,
 } from "./helpers";
 
 // ---------------------------------------------------------------------------
@@ -122,6 +123,32 @@ describe("memebook", () => {
 
   // -------------------------------------------------------------- config ---
 
+  it("refuses initialisation by anyone but the upgrade authority", async () => {
+    // Whoever lands the first initialize_config after deployment names the
+    // admin and the fee recipient. On a public cluster that call can be
+    // front-run, so it is tied to the key that deployed the program.
+    await expectFailure(
+      program.methods
+        .initializeConfig(
+          lender.publicKey,
+          lender.publicKey,
+          ORIGINATION_FEE_BPS,
+          INTEREST_FEE_BPS,
+          DEFAULT_FEE_BPS
+        )
+        .accountsPartial({
+          payer: lender.publicKey,
+          config: configPda,
+          program: program.programId,
+          programData: programDataPda(program.programId),
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([lender])
+        .rpc(),
+      "NotUpgradeAuthority"
+    );
+  });
+
   it("initialises config", async () => {
     await program.methods
       .initializeConfig(
@@ -134,6 +161,8 @@ describe("memebook", () => {
       .accountsPartial({
         payer: payer.publicKey,
         config: configPda,
+        program: program.programId,
+        programData: programDataPda(program.programId),
         systemProgram: SystemProgram.programId,
       })
       .signers([payer])

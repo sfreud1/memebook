@@ -20,11 +20,16 @@ echo "==> stopping any running validator"
 pkill -f solana-test-validator 2>/dev/null || true
 sleep 2
 
-echo "==> generating IDL + types"
-anchor build >/dev/null 2>&1
+# SKIP_BUILD=1 reuses target/ as-is (e.g. while a fuzz run holds the .so).
+if [[ -z "${SKIP_BUILD:-}" ]]; then
+  echo "==> generating IDL + types"
+  anchor build >/dev/null 2>&1
 
-echo "==> building sBPF v0 binary"
-cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0 >/dev/null 2>&1
+  echo "==> building sBPF v0 binary"
+  cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0 >/dev/null 2>&1
+else
+  echo "==> SKIP_BUILD set, reusing target/deploy/memebook.so"
+fi
 
 echo "==> starting validator on a fresh ledger"
 rm -rf "$LEDGER"

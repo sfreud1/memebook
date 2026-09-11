@@ -43,7 +43,16 @@ async function main() {
   } catch {
     await program.methods
       .initializeConfig(payer.publicKey, payer.publicKey, 1000, 500, 10)
-      .accountsPartial({ payer: payer.publicKey, config: configPda, systemProgram: SystemProgram.programId })
+      .accountsPartial({
+        payer: payer.publicKey,
+        config: configPda,
+        program: programId,
+        programData: PublicKey.findProgramAddressSync(
+          [programId.toBuffer()],
+          new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111")
+        )[0],
+        systemProgram: SystemProgram.programId,
+      })
       .rpc();
     console.log("config: initialised");
   }

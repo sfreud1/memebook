@@ -1017,6 +1017,10 @@ pub mod memebook {
     pub struct InitializeConfigInstructionAccountMetas {
         pub payer: AccountMeta,
 
+        pub program: AccountMeta,
+
+        pub program_data: AccountMeta,
+
         pub config: AccountMeta,
 
         pub system_program: AccountMeta,
@@ -1027,12 +1031,20 @@ pub mod memebook {
     pub struct InitializeConfigInstructionAccounts {
         pub payer: Pubkey,
 
+        pub program_data: Pubkey,
+
         pub config: Pubkey,
     }
 
     impl InitializeConfigInstructionAccounts {
-        pub fn new(payer: Pubkey, config: Pubkey) -> Self {
-            Self { payer, config }
+        pub fn new(payer: Pubkey, program_data: Pubkey, config: Pubkey) -> Self {
+            Self {
+                payer,
+
+                program_data,
+
+                config,
+            }
         }
     }
 
@@ -1093,6 +1105,13 @@ pub mod memebook {
         pub fn accounts(mut self, accounts: InitializeConfigInstructionAccounts) -> Self {
             self.accounts.payer = AccountMeta::new(accounts.payer, true);
 
+            self.accounts.program = AccountMeta::new_readonly(
+                pubkey!("GGVLRegjz8K7op4KzJELS8GpEqHHCv7XagZBkEpCvsjh"),
+                false,
+            );
+
+            self.accounts.program_data = AccountMeta::new_readonly(accounts.program_data, false);
+
             self.accounts.config = AccountMeta::new(accounts.config, false);
 
             self.accounts.system_program =
@@ -1110,6 +1129,10 @@ pub mod memebook {
             let mut metas = Vec::new();
 
             metas.push(self.accounts.payer.clone());
+
+            metas.push(self.accounts.program.clone());
+
+            metas.push(self.accounts.program_data.clone());
 
             metas.push(self.accounts.config.clone());
 
@@ -1830,35 +1853,35 @@ pub mod memebook {
         /// Fee exceeds the hard-coded maximum
         FeeTooHigh = 6003,
 
+        /// Only the program's upgrade authority may initialise it
+        NotUpgradeAuthority = 6004,
+
         /// Loan duration outside the permitted range
-        InvalidDuration = 6004,
+        InvalidDuration = 6005,
 
         /// APR outside the permitted range
-        InvalidApr = 6005,
+        InvalidApr = 6006,
 
         /// Amount must be greater than zero
-        ZeroAmount = 6006,
+        ZeroAmount = 6007,
 
         /// Offer expiry must be in the future
-        InvalidExpiry = 6007,
+        InvalidExpiry = 6008,
 
         /// min_draw cannot exceed the total principal
-        InvalidMinDraw = 6008,
+        InvalidMinDraw = 6009,
 
         /// Principal and collateral mints must differ
-        IdenticalMints = 6009,
+        IdenticalMints = 6010,
 
         /// Offer has expired
-        OfferExpired = 6010,
+        OfferExpired = 6011,
 
         /// Offer does not have enough undrawn principal
-        InsufficientOfferLiquidity = 6011,
+        InsufficientOfferLiquidity = 6012,
 
         /// Draw is smaller than the offer's minimum
-        DrawBelowMinimum = 6012,
-
-        /// Offer still has open loans or undrawn principal
-        OfferNotEmpty = 6013,
+        DrawBelowMinimum = 6013,
 
         /// Loan is not active
         LoanNotActive = 6014,
@@ -1869,9 +1892,8 @@ pub mod memebook {
         /// Loan has not matured yet
         LoanNotMatured = 6016,
 
-        /// Collateral mint carries a Token-2022 extension that makes escrow
-        /// unsafe
-        UnsafeCollateralMint = 6017,
+        /// Mint carries a Token-2022 extension that makes escrow unsafe
+        UnsafeMint = 6017,
 
         /// Mint account could not be parsed
         InvalidMint = 6018,
@@ -1879,8 +1901,11 @@ pub mod memebook {
         /// Token transfer moved a different amount than expected
         TransferAmountMismatch = 6019,
 
+        /// Origination fee would consume the entire disbursement
+        OriginationFeeExceedsPrincipal = 6020,
+
         /// Arithmetic overflow
-        MathOverflow = 6020,
+        MathOverflow = 6021,
     }
 
     impl MemebookError {
@@ -1900,6 +1925,10 @@ pub mod memebook {
 
                 Self::FeeTooHigh => "Fee exceeds the hard-coded maximum",
 
+                Self::NotUpgradeAuthority => {
+                    "Only the program's upgrade authority may initialise it"
+                }
+
                 Self::InvalidDuration => "Loan duration outside the permitted range",
 
                 Self::InvalidApr => "APR outside the permitted range",
@@ -1918,22 +1947,22 @@ pub mod memebook {
 
                 Self::DrawBelowMinimum => "Draw is smaller than the offer's minimum",
 
-                Self::OfferNotEmpty => "Offer still has open loans or undrawn principal",
-
                 Self::LoanNotActive => "Loan is not active",
 
                 Self::LoanMatured => "Loan has already matured",
 
                 Self::LoanNotMatured => "Loan has not matured yet",
 
-                Self::UnsafeCollateralMint => {
-                    "Collateral mint carries a Token-2022 extension that makes escrow unsafe"
-                }
+                Self::UnsafeMint => "Mint carries a Token-2022 extension that makes escrow unsafe",
 
                 Self::InvalidMint => "Mint account could not be parsed",
 
                 Self::TransferAmountMismatch => {
                     "Token transfer moved a different amount than expected"
+                }
+
+                Self::OriginationFeeExceedsPrincipal => {
+                    "Origination fee would consume the entire disbursement"
                 }
 
                 Self::MathOverflow => "Arithmetic overflow",
@@ -1951,25 +1980,25 @@ pub mod memebook {
 
                 6003 => Some(Self::FeeTooHigh),
 
-                6004 => Some(Self::InvalidDuration),
+                6004 => Some(Self::NotUpgradeAuthority),
 
-                6005 => Some(Self::InvalidApr),
+                6005 => Some(Self::InvalidDuration),
 
-                6006 => Some(Self::ZeroAmount),
+                6006 => Some(Self::InvalidApr),
 
-                6007 => Some(Self::InvalidExpiry),
+                6007 => Some(Self::ZeroAmount),
 
-                6008 => Some(Self::InvalidMinDraw),
+                6008 => Some(Self::InvalidExpiry),
 
-                6009 => Some(Self::IdenticalMints),
+                6009 => Some(Self::InvalidMinDraw),
 
-                6010 => Some(Self::OfferExpired),
+                6010 => Some(Self::IdenticalMints),
 
-                6011 => Some(Self::InsufficientOfferLiquidity),
+                6011 => Some(Self::OfferExpired),
 
-                6012 => Some(Self::DrawBelowMinimum),
+                6012 => Some(Self::InsufficientOfferLiquidity),
 
-                6013 => Some(Self::OfferNotEmpty),
+                6013 => Some(Self::DrawBelowMinimum),
 
                 6014 => Some(Self::LoanNotActive),
 
@@ -1977,13 +2006,15 @@ pub mod memebook {
 
                 6016 => Some(Self::LoanNotMatured),
 
-                6017 => Some(Self::UnsafeCollateralMint),
+                6017 => Some(Self::UnsafeMint),
 
                 6018 => Some(Self::InvalidMint),
 
                 6019 => Some(Self::TransferAmountMismatch),
 
-                6020 => Some(Self::MathOverflow),
+                6020 => Some(Self::OriginationFeeExceedsPrincipal),
+
+                6021 => Some(Self::MathOverflow),
 
                 _ => None,
             }
@@ -2006,9 +2037,33 @@ pub mod memebook {
     // Custom Types
     // ------------------------------------------------------------------------
 
+    /// Custom struct: AdminTransferred
+    #[derive(Debug, BorshDeserialize, BorshSerialize, Clone, PartialEq)]
+    pub struct AdminTransferred {
+        pub previous_admin: Pubkey,
+
+        pub new_admin: Pubkey,
+
+        pub ts: i64,
+    }
+
+    impl AdminTransferred {
+        pub fn new(previous_admin: Pubkey, new_admin: Pubkey, ts: i64) -> Self {
+            Self {
+                previous_admin,
+
+                new_admin,
+
+                ts,
+            }
+        }
+    }
+
     /// Custom struct: Config
     #[derive(Debug, BorshDeserialize, BorshSerialize, Clone, PartialEq)]
     pub struct Config {
+        pub version: u8,
+
         pub admin: Pubkey,
 
         pub pending_admin: Pubkey,
@@ -2028,6 +2083,8 @@ pub mod memebook {
 
     impl Config {
         pub fn new(
+            version: u8,
+
             admin: Pubkey,
 
             pending_admin: Pubkey,
@@ -2045,6 +2102,8 @@ pub mod memebook {
             bump: u8,
         ) -> Self {
             Self {
+                version,
+
                 admin,
 
                 pending_admin,
@@ -2064,9 +2123,59 @@ pub mod memebook {
         }
     }
 
+    /// Custom struct: FeeRecipientUpdated
+    #[derive(Debug, BorshDeserialize, BorshSerialize, Clone, PartialEq)]
+    pub struct FeeRecipientUpdated {
+        pub fee_recipient: Pubkey,
+
+        pub ts: i64,
+    }
+
+    impl FeeRecipientUpdated {
+        pub fn new(fee_recipient: Pubkey, ts: i64) -> Self {
+            Self { fee_recipient, ts }
+        }
+    }
+
+    /// Custom struct: FeesUpdated
+    #[derive(Debug, BorshDeserialize, BorshSerialize, Clone, PartialEq)]
+    pub struct FeesUpdated {
+        pub origination_fee_bps: u16,
+
+        pub interest_fee_bps: u16,
+
+        pub default_fee_bps: u16,
+
+        pub ts: i64,
+    }
+
+    impl FeesUpdated {
+        pub fn new(
+            origination_fee_bps: u16,
+
+            interest_fee_bps: u16,
+
+            default_fee_bps: u16,
+
+            ts: i64,
+        ) -> Self {
+            Self {
+                origination_fee_bps,
+
+                interest_fee_bps,
+
+                default_fee_bps,
+
+                ts,
+            }
+        }
+    }
+
     /// Custom struct: Loan
     #[derive(Debug, BorshDeserialize, BorshSerialize, Clone, PartialEq)]
     pub struct Loan {
+        pub version: u8,
+
         pub borrower: Pubkey,
 
         pub lender: Pubkey,
@@ -2085,6 +2194,10 @@ pub mod memebook {
 
         pub interest_amount: u64,
 
+        pub interest_fee_bps: u16,
+
+        pub default_fee_bps: u16,
+
         pub start_ts: i64,
 
         pub maturity_ts: i64,
@@ -2096,6 +2209,8 @@ pub mod memebook {
 
     impl Loan {
         pub fn new(
+            version: u8,
+
             borrower: Pubkey,
 
             lender: Pubkey,
@@ -2114,6 +2229,10 @@ pub mod memebook {
 
             interest_amount: u64,
 
+            interest_fee_bps: u16,
+
+            default_fee_bps: u16,
+
             start_ts: i64,
 
             maturity_ts: i64,
@@ -2123,6 +2242,8 @@ pub mod memebook {
             bump: u8,
         ) -> Self {
             Self {
+                version,
+
                 borrower,
 
                 lender,
@@ -2140,6 +2261,10 @@ pub mod memebook {
                 collateral_amount,
 
                 interest_amount,
+
+                interest_fee_bps,
+
+                default_fee_bps,
 
                 start_ts,
 
@@ -2363,6 +2488,8 @@ pub mod memebook {
     /// Custom struct: Offer
     #[derive(Debug, BorshDeserialize, BorshSerialize, Clone, PartialEq)]
     pub struct Offer {
+        pub version: u8,
+
         pub lender: Pubkey,
 
         pub principal_mint: Pubkey,
@@ -2392,6 +2519,8 @@ pub mod memebook {
 
     impl Offer {
         pub fn new(
+            version: u8,
+
             lender: Pubkey,
 
             principal_mint: Pubkey,
@@ -2419,6 +2548,8 @@ pub mod memebook {
             bump: u8,
         ) -> Self {
             Self {
+                version,
+
                 lender,
 
                 principal_mint,
@@ -2547,6 +2678,20 @@ pub mod memebook {
 
                 ts,
             }
+        }
+    }
+
+    /// Custom struct: PausedUpdated
+    #[derive(Debug, BorshDeserialize, BorshSerialize, Clone, PartialEq)]
+    pub struct PausedUpdated {
+        pub paused: bool,
+
+        pub ts: i64,
+    }
+
+    impl PausedUpdated {
+        pub fn new(paused: bool, ts: i64) -> Self {
+            Self { paused, ts }
         }
     }
 }

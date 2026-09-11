@@ -94,6 +94,14 @@ export type Memebook = {
         },
         {
           "name": "offer",
+          "docs": [
+            "`dup`: may legitimately be the same account as another in this",
+            "instruction when one wallet holds more than one role. Anchor's guard",
+            "exists to stop two deserialised copies fighting over a single write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so repeated CPI transfers touching one destination",
+            "settle exactly as correctly as separate ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -225,6 +233,15 @@ export type Memebook = {
         },
         {
           "name": "feePrincipalAccount",
+          "docs": [
+            "`dup`: this legitimately aliases another account in the same instruction",
+            "when the lender is also the protocol's fee recipient — the operator",
+            "seeding their own book is the obvious case. Anchor's duplicate-mutable",
+            "guard exists to stop two deserialised copies fighting over one write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so two sequential CPI transfers to one destination are",
+            "exactly as correct as two to different ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -457,6 +474,14 @@ export type Memebook = {
         },
         {
           "name": "loan",
+          "docs": [
+            "`dup`: may legitimately be the same account as another in this",
+            "instruction when one wallet holds more than one role. Anchor's guard",
+            "exists to stop two deserialised copies fighting over a single write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so repeated CPI transfers touching one destination",
+            "settle exactly as correctly as separate ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -573,6 +598,15 @@ export type Memebook = {
         },
         {
           "name": "feeCollateralAccount",
+          "docs": [
+            "`dup`: this legitimately aliases another account in the same instruction",
+            "when the lender is also the protocol's fee recipient — the operator",
+            "seeding their own book is the obvious case. Anchor's duplicate-mutable",
+            "guard exists to stop two deserialised copies fighting over one write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so two sequential CPI transfers to one destination are",
+            "exactly as correct as two to different ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -803,8 +837,23 @@ export type Memebook = {
       "accounts": [
         {
           "name": "payer",
+          "docs": [
+            "Must be the program's upgrade authority.",
+            "",
+            "Without this, `initialize_config` is a race: whoever lands the first",
+            "call after deployment names the admin and the fee recipient, and on a",
+            "public cluster that call can be front-run. Tying it to the upgrade",
+            "authority means only the party that deployed the program can claim it."
+          ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "program",
+          "address": "GGVLRegjz8K7op4KzJELS8GpEqHHCv7XagZBkEpCvsjh"
+        },
+        {
+          "name": "programData"
         },
         {
           "name": "config",
@@ -953,6 +1002,14 @@ export type Memebook = {
         },
         {
           "name": "loan",
+          "docs": [
+            "`dup`: may legitimately be the same account as another in this",
+            "instruction when one wallet holds more than one role. Anchor's guard",
+            "exists to stop two deserialised copies fighting over a single write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so repeated CPI transfers touching one destination",
+            "settle exactly as correctly as separate ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -1030,7 +1087,11 @@ export type Memebook = {
             "`init_if_needed` on purpose. If the lender were able to close their token",
             "account before maturity, a missing destination would make repayment",
             "impossible and hand them the collateral for free. The borrower can always",
-            "re-create it and pay off the loan."
+            "re-create it and pay off the loan.",
+            "",
+            "`dup`: equals `borrower_principal_account` when somebody borrows against",
+            "their own offer, and `fee_principal_account` when the lender is also the",
+            "fee recipient. Neither should make a loan unrepayable."
           ],
           "writable": true,
           "pda": {
@@ -1089,6 +1150,15 @@ export type Memebook = {
         },
         {
           "name": "feePrincipalAccount",
+          "docs": [
+            "`dup`: this legitimately aliases another account in the same instruction",
+            "when the lender is also the protocol's fee recipient — the operator",
+            "seeding their own book is the obvious case. Anchor's duplicate-mutable",
+            "guard exists to stop two deserialised copies fighting over one write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so two sequential CPI transfers to one destination are",
+            "exactly as correct as two to different ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -1354,6 +1424,45 @@ export type Memebook = {
   ],
   "events": [
     {
+      "name": "adminTransferred",
+      "discriminator": [
+        255,
+        147,
+        182,
+        5,
+        199,
+        217,
+        38,
+        179
+      ]
+    },
+    {
+      "name": "feeRecipientUpdated",
+      "discriminator": [
+        24,
+        150,
+        233,
+        92,
+        169,
+        221,
+        233,
+        244
+      ]
+    },
+    {
+      "name": "feesUpdated",
+      "discriminator": [
+        65,
+        34,
+        234,
+        59,
+        248,
+        242,
+        101,
+        118
+      ]
+    },
+    {
       "name": "loanDefaulted",
       "discriminator": [
         194,
@@ -1417,6 +1526,19 @@ export type Memebook = {
         157,
         87
       ]
+    },
+    {
+      "name": "pausedUpdated",
+      "discriminator": [
+        209,
+        89,
+        200,
+        35,
+        126,
+        183,
+        132,
+        23
+      ]
     }
   ],
   "errors": [
@@ -1442,53 +1564,53 @@ export type Memebook = {
     },
     {
       "code": 6004,
+      "name": "notUpgradeAuthority",
+      "msg": "Only the program's upgrade authority may initialise it"
+    },
+    {
+      "code": 6005,
       "name": "invalidDuration",
       "msg": "Loan duration outside the permitted range"
     },
     {
-      "code": 6005,
+      "code": 6006,
       "name": "invalidApr",
       "msg": "APR outside the permitted range"
     },
     {
-      "code": 6006,
+      "code": 6007,
       "name": "zeroAmount",
       "msg": "Amount must be greater than zero"
     },
     {
-      "code": 6007,
+      "code": 6008,
       "name": "invalidExpiry",
       "msg": "Offer expiry must be in the future"
     },
     {
-      "code": 6008,
+      "code": 6009,
       "name": "invalidMinDraw",
       "msg": "min_draw cannot exceed the total principal"
     },
     {
-      "code": 6009,
+      "code": 6010,
       "name": "identicalMints",
       "msg": "Principal and collateral mints must differ"
     },
     {
-      "code": 6010,
+      "code": 6011,
       "name": "offerExpired",
       "msg": "Offer has expired"
     },
     {
-      "code": 6011,
+      "code": 6012,
       "name": "insufficientOfferLiquidity",
       "msg": "Offer does not have enough undrawn principal"
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "drawBelowMinimum",
       "msg": "Draw is smaller than the offer's minimum"
-    },
-    {
-      "code": 6013,
-      "name": "offerNotEmpty",
-      "msg": "Offer still has open loans or undrawn principal"
     },
     {
       "code": 6014,
@@ -1507,8 +1629,8 @@ export type Memebook = {
     },
     {
       "code": 6017,
-      "name": "unsafeCollateralMint",
-      "msg": "Collateral mint carries a Token-2022 extension that makes escrow unsafe"
+      "name": "unsafeMint",
+      "msg": "Mint carries a Token-2022 extension that makes escrow unsafe"
     },
     {
       "code": 6018,
@@ -1522,16 +1644,45 @@ export type Memebook = {
     },
     {
       "code": 6020,
+      "name": "originationFeeExceedsPrincipal",
+      "msg": "Origination fee would consume the entire disbursement"
+    },
+    {
+      "code": 6021,
       "name": "mathOverflow",
       "msg": "Arithmetic overflow"
     }
   ],
   "types": [
     {
+      "name": "adminTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previousAdmin",
+            "type": "pubkey"
+          },
+          {
+            "name": "newAdmin",
+            "type": "pubkey"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "config",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
           {
             "name": "admin",
             "type": "pubkey"
@@ -1585,10 +1736,58 @@ export type Memebook = {
       }
     },
     {
+      "name": "feeRecipientUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "feeRecipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "feesUpdated",
+      "docs": [
+        "Fee changes only affect loans opened afterwards — rates are snapshotted onto",
+        "each loan — but an observer still needs to see them happen."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "originationFeeBps",
+            "type": "u16"
+          },
+          {
+            "name": "interestFeeBps",
+            "type": "u16"
+          },
+          {
+            "name": "defaultFeeBps",
+            "type": "u16"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "loan",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
           {
             "name": "borrower",
             "type": "pubkey"
@@ -1635,6 +1834,22 @@ export type Memebook = {
               "there is no rate curve, no utilisation, no oracle."
             ],
             "type": "u64"
+          },
+          {
+            "name": "interestFeeBps",
+            "docs": [
+              "The protocol's cut, as agreed when this loan opened.",
+              "",
+              "Read from the loan rather than from config at settlement. Otherwise an",
+              "admin could raise the rate after the fact and take a larger share of a",
+              "return the lender had already committed to — terms that move under a",
+              "position are exactly what this protocol promises not to do."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "defaultFeeBps",
+            "type": "u16"
           },
           {
             "name": "startTs",
@@ -1818,6 +2033,10 @@ export type Memebook = {
         "kind": "struct",
         "fields": [
           {
+            "name": "version",
+            "type": "u8"
+          },
+          {
             "name": "lender",
             "type": "pubkey"
           },
@@ -1965,6 +2184,22 @@ export type Memebook = {
           {
             "name": "expiryTs",
             "type": "i64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "pausedUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
           },
           {
             "name": "ts",

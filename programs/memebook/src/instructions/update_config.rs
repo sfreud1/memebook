@@ -1,5 +1,6 @@
 use crate::constants::*;
 use crate::errors::MemebookError;
+use crate::events::{AdminTransferred, FeeRecipientUpdated, FeesUpdated, PausedUpdated};
 use crate::state::Config;
 use anchor_lang::prelude::*;
 
@@ -35,11 +36,18 @@ pub fn set_fees(
     config.origination_fee_bps = origination_fee_bps;
     config.interest_fee_bps = interest_fee_bps;
     config.default_fee_bps = default_fee_bps;
+    emit!(FeesUpdated {
+        origination_fee_bps,
+        interest_fee_bps,
+        default_fee_bps,
+        ts: Clock::get()?.unix_timestamp,
+    });
     Ok(())
 }
 
 pub fn set_fee_recipient(ctx: Context<UpdateConfig>, fee_recipient: Pubkey) -> Result<()> {
     ctx.accounts.config.fee_recipient = fee_recipient;
+    emit!(FeeRecipientUpdated { fee_recipient, ts: Clock::get()?.unix_timestamp });
     Ok(())
 }
 
@@ -47,6 +55,7 @@ pub fn set_fee_recipient(ctx: Context<UpdateConfig>, fee_recipient: Pubkey) -> R
 /// stay live in every state: an admin must never be able to strand collateral.
 pub fn set_paused(ctx: Context<UpdateConfig>, paused: bool) -> Result<()> {
     ctx.accounts.config.paused = paused;
+    emit!(PausedUpdated { paused, ts: Clock::get()?.unix_timestamp });
     Ok(())
 }
 
@@ -72,7 +81,13 @@ pub struct AcceptAdmin<'info> {
 /// because the key only takes effect once the new holder signs for it.
 pub fn accept_admin(ctx: Context<AcceptAdmin>) -> Result<()> {
     let config = &mut ctx.accounts.config;
+    let previous_admin = config.admin;
     config.admin = ctx.accounts.pending_admin.key();
     config.pending_admin = Pubkey::default();
+    emit!(AdminTransferred {
+        previous_admin,
+        new_admin: config.admin,
+        ts: Clock::get()?.unix_timestamp,
+    });
     Ok(())
 }

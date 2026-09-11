@@ -88,6 +88,14 @@
         },
         {
           "name": "offer",
+          "docs": [
+            "`dup`: may legitimately be the same account as another in this",
+            "instruction when one wallet holds more than one role. Anchor's guard",
+            "exists to stop two deserialised copies fighting over a single write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so repeated CPI transfers touching one destination",
+            "settle exactly as correctly as separate ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -219,6 +227,15 @@
         },
         {
           "name": "fee_principal_account",
+          "docs": [
+            "`dup`: this legitimately aliases another account in the same instruction",
+            "when the lender is also the protocol's fee recipient — the operator",
+            "seeding their own book is the obvious case. Anchor's duplicate-mutable",
+            "guard exists to stop two deserialised copies fighting over one write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so two sequential CPI transfers to one destination are",
+            "exactly as correct as two to different ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -451,6 +468,14 @@
         },
         {
           "name": "loan",
+          "docs": [
+            "`dup`: may legitimately be the same account as another in this",
+            "instruction when one wallet holds more than one role. Anchor's guard",
+            "exists to stop two deserialised copies fighting over a single write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so repeated CPI transfers touching one destination",
+            "settle exactly as correctly as separate ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -567,6 +592,15 @@
         },
         {
           "name": "fee_collateral_account",
+          "docs": [
+            "`dup`: this legitimately aliases another account in the same instruction",
+            "when the lender is also the protocol's fee recipient — the operator",
+            "seeding their own book is the obvious case. Anchor's duplicate-mutable",
+            "guard exists to stop two deserialised copies fighting over one write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so two sequential CPI transfers to one destination are",
+            "exactly as correct as two to different ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -797,8 +831,23 @@
       "accounts": [
         {
           "name": "payer",
+          "docs": [
+            "Must be the program's upgrade authority.",
+            "",
+            "Without this, `initialize_config` is a race: whoever lands the first",
+            "call after deployment names the admin and the fee recipient, and on a",
+            "public cluster that call can be front-run. Tying it to the upgrade",
+            "authority means only the party that deployed the program can claim it."
+          ],
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "program",
+          "address": "GGVLRegjz8K7op4KzJELS8GpEqHHCv7XagZBkEpCvsjh"
+        },
+        {
+          "name": "program_data"
         },
         {
           "name": "config",
@@ -947,6 +996,14 @@
         },
         {
           "name": "loan",
+          "docs": [
+            "`dup`: may legitimately be the same account as another in this",
+            "instruction when one wallet holds more than one role. Anchor's guard",
+            "exists to stop two deserialised copies fighting over a single write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so repeated CPI transfers touching one destination",
+            "settle exactly as correctly as separate ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -1024,7 +1081,11 @@
             "`init_if_needed` on purpose. If the lender were able to close their token",
             "account before maturity, a missing destination would make repayment",
             "impossible and hand them the collateral for free. The borrower can always",
-            "re-create it and pay off the loan."
+            "re-create it and pay off the loan.",
+            "",
+            "`dup`: equals `borrower_principal_account` when somebody borrows against",
+            "their own offer, and `fee_principal_account` when the lender is also the",
+            "fee recipient. Neither should make a loan unrepayable."
           ],
           "writable": true,
           "pda": {
@@ -1083,6 +1144,15 @@
         },
         {
           "name": "fee_principal_account",
+          "docs": [
+            "`dup`: this legitimately aliases another account in the same instruction",
+            "when the lender is also the protocol's fee recipient — the operator",
+            "seeding their own book is the obvious case. Anchor's duplicate-mutable",
+            "guard exists to stop two deserialised copies fighting over one write on",
+            "exit; token accounts are owned by the token program and never written",
+            "back by Anchor, so two sequential CPI transfers to one destination are",
+            "exactly as correct as two to different ones."
+          ],
           "writable": true,
           "pda": {
             "seeds": [
@@ -1348,6 +1418,45 @@
   ],
   "events": [
     {
+      "name": "AdminTransferred",
+      "discriminator": [
+        255,
+        147,
+        182,
+        5,
+        199,
+        217,
+        38,
+        179
+      ]
+    },
+    {
+      "name": "FeeRecipientUpdated",
+      "discriminator": [
+        24,
+        150,
+        233,
+        92,
+        169,
+        221,
+        233,
+        244
+      ]
+    },
+    {
+      "name": "FeesUpdated",
+      "discriminator": [
+        65,
+        34,
+        234,
+        59,
+        248,
+        242,
+        101,
+        118
+      ]
+    },
+    {
       "name": "LoanDefaulted",
       "discriminator": [
         194,
@@ -1411,6 +1520,19 @@
         157,
         87
       ]
+    },
+    {
+      "name": "PausedUpdated",
+      "discriminator": [
+        209,
+        89,
+        200,
+        35,
+        126,
+        183,
+        132,
+        23
+      ]
     }
   ],
   "errors": [
@@ -1436,53 +1558,53 @@
     },
     {
       "code": 6004,
+      "name": "NotUpgradeAuthority",
+      "msg": "Only the program's upgrade authority may initialise it"
+    },
+    {
+      "code": 6005,
       "name": "InvalidDuration",
       "msg": "Loan duration outside the permitted range"
     },
     {
-      "code": 6005,
+      "code": 6006,
       "name": "InvalidApr",
       "msg": "APR outside the permitted range"
     },
     {
-      "code": 6006,
+      "code": 6007,
       "name": "ZeroAmount",
       "msg": "Amount must be greater than zero"
     },
     {
-      "code": 6007,
+      "code": 6008,
       "name": "InvalidExpiry",
       "msg": "Offer expiry must be in the future"
     },
     {
-      "code": 6008,
+      "code": 6009,
       "name": "InvalidMinDraw",
       "msg": "min_draw cannot exceed the total principal"
     },
     {
-      "code": 6009,
+      "code": 6010,
       "name": "IdenticalMints",
       "msg": "Principal and collateral mints must differ"
     },
     {
-      "code": 6010,
+      "code": 6011,
       "name": "OfferExpired",
       "msg": "Offer has expired"
     },
     {
-      "code": 6011,
+      "code": 6012,
       "name": "InsufficientOfferLiquidity",
       "msg": "Offer does not have enough undrawn principal"
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "DrawBelowMinimum",
       "msg": "Draw is smaller than the offer's minimum"
-    },
-    {
-      "code": 6013,
-      "name": "OfferNotEmpty",
-      "msg": "Offer still has open loans or undrawn principal"
     },
     {
       "code": 6014,
@@ -1501,8 +1623,8 @@
     },
     {
       "code": 6017,
-      "name": "UnsafeCollateralMint",
-      "msg": "Collateral mint carries a Token-2022 extension that makes escrow unsafe"
+      "name": "UnsafeMint",
+      "msg": "Mint carries a Token-2022 extension that makes escrow unsafe"
     },
     {
       "code": 6018,
@@ -1516,16 +1638,45 @@
     },
     {
       "code": 6020,
+      "name": "OriginationFeeExceedsPrincipal",
+      "msg": "Origination fee would consume the entire disbursement"
+    },
+    {
+      "code": 6021,
       "name": "MathOverflow",
       "msg": "Arithmetic overflow"
     }
   ],
   "types": [
     {
+      "name": "AdminTransferred",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "previous_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "new_admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "Config",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
           {
             "name": "admin",
             "type": "pubkey"
@@ -1579,10 +1730,58 @@
       }
     },
     {
+      "name": "FeeRecipientUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "fee_recipient",
+            "type": "pubkey"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FeesUpdated",
+      "docs": [
+        "Fee changes only affect loans opened afterwards — rates are snapshotted onto",
+        "each loan — but an observer still needs to see them happen."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "origination_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "interest_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "default_fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "Loan",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "version",
+            "type": "u8"
+          },
           {
             "name": "borrower",
             "type": "pubkey"
@@ -1629,6 +1828,22 @@
               "there is no rate curve, no utilisation, no oracle."
             ],
             "type": "u64"
+          },
+          {
+            "name": "interest_fee_bps",
+            "docs": [
+              "The protocol's cut, as agreed when this loan opened.",
+              "",
+              "Read from the loan rather than from config at settlement. Otherwise an",
+              "admin could raise the rate after the fact and take a larger share of a",
+              "return the lender had already committed to — terms that move under a",
+              "position are exactly what this protocol promises not to do."
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "default_fee_bps",
+            "type": "u16"
           },
           {
             "name": "start_ts",
@@ -1812,6 +2027,10 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "version",
+            "type": "u8"
+          },
+          {
             "name": "lender",
             "type": "pubkey"
           },
@@ -1959,6 +2178,22 @@
           {
             "name": "expiry_ts",
             "type": "i64"
+          },
+          {
+            "name": "ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PausedUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paused",
+            "type": "bool"
           },
           {
             "name": "ts",

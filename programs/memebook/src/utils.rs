@@ -101,8 +101,13 @@ pub fn assert_escrowed_mint_is_safe(mint_ai: &AccountInfo) -> Result<()> {
             | ExtensionType::MintCloseAuthority
             | ExtensionType::DefaultAccountState
             | ExtensionType::ConfidentialTransferMint
-            | ExtensionType::ConfidentialTransferFeeConfig => {
-                return err!(MemebookError::UnsafeCollateralMint)
+            | ExtensionType::ConfidentialTransferFeeConfig
+            | ExtensionType::ConfidentialMintBurn
+            // A pausable mint's authority can halt every transfer of it. Both
+            // settlement paths move collateral out of escrow, so a pause would
+            // strand every open loan on that mint: repay fails, claim fails.
+            | ExtensionType::Pausable => {
+                return err!(MemebookError::UnsafeMint)
             }
             _ => {}
         }

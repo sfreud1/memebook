@@ -1,7 +1,7 @@
 use crate::constants::*;
 use crate::errors::MemebookError;
 use crate::events::LoanOpened;
-use crate::state::{Config, Loan, LoanStatus, Offer};
+use crate::state::{ACCOUNT_VERSION, Config, Loan, LoanStatus, Offer};
 use crate::utils::*;
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
@@ -77,6 +77,7 @@ pub struct AcceptOffer<'info> {
     #[account(
         mut,
         token::mint = principal_mint,
+        token::authority = borrower,
         token::token_program = principal_token_program,
         dup,
     )]
@@ -235,6 +236,7 @@ pub fn handler(ctx: Context<AcceptOffer>, loan_id: u64, draw_amount: u64) -> Res
         .ok_or(MemebookError::MathOverflow)?;
 
     let loan = &mut ctx.accounts.loan;
+    loan.version = ACCOUNT_VERSION;
     loan.borrower = ctx.accounts.borrower.key();
     loan.lender = offer.lender;
     loan.offer = offer.key();

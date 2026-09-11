@@ -1,12 +1,29 @@
 use crate::constants::*;
 use crate::errors::MemebookError;
-use crate::state::Config;
+use crate::state::{Config, ACCOUNT_VERSION};
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
 pub struct InitializeConfig<'info> {
+    /// Must be the program's upgrade authority.
+    ///
+    /// Without this, `initialize_config` is a race: whoever lands the first
+    /// call after deployment names the admin and the fee recipient, and on a
+    /// public cluster that call can be front-run. Tying it to the upgrade
+    /// authority means only the party that deployed the program can claim it.
     #[account(mut)]
     pub payer: Signer<'info>,
+
+    #[account(
+        constraint = program.programdata_address()? == Some(program_data.key())
+    )]
+    pub program: Program<'info, crate::program::Memebook>,
+
+    #[account(
+        constraint = program_data.upgrade_authority_address == Some(payer.key())
+            @ MemebookError::NotUpgradeAuthority
+    )]
+    pub program_data: Account<'info, ProgramData>,
 
     #[account(
         init,
@@ -38,6 +55,7 @@ pub fn handler(
     );
 
     let config = &mut ctx.accounts.config;
+    config.version = ACCOUNT_VERSION;
     config.admin = admin;
     config.pending_admin = Pubkey::default();
     config.fee_recipient = fee_recipient;

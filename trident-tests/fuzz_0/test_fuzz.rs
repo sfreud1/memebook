@@ -129,6 +129,20 @@ impl FuzzTest {
         }
 
         // ---- config ----
+        // initialize_config only accepts the program's upgrade authority as the
+        // signer (front-run guard). Trident registers the program with no
+        // authority, so point the ProgramData account's `upgrade_authority_address`
+        // at the payer before calling it. bincode layout of
+        // UpgradeableLoaderState::ProgramData: u32 variant | u64 slot | Option<Pubkey>.
+        let program_data = self.trident.get_program_data_address_v3(&program_id());
+        let mut pd = self.trident.get_account(&program_data);
+        {
+            let data = pd.data_as_mut_slice();
+            data[12] = 1;
+            data[13..45].copy_from_slice(payer.as_ref());
+        }
+        self.trident.set_account_custom(&program_data, &pd);
+
         self.config = self.trident.find_program_address(&[b"config"], &program_id()).0;
         let ix = InitializeConfigInstruction::data(InitializeConfigInstructionData::new(
             payer,
@@ -137,7 +151,7 @@ impl FuzzTest {
             500,  //   interest:  5% of interest
             10,   //    default:  0.1% of collateral
         ))
-        .accounts(InitializeConfigInstructionAccounts::new(payer, self.config))
+        .accounts(InitializeConfigInstructionAccounts::new(payer, program_data, self.config))
         .instruction();
         self.trident.process_transaction(&[ix], Some("initialize_config"));
     }

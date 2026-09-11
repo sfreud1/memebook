@@ -128,11 +128,19 @@ lenders per offer.
 ## Tests
 
 ```bash
-./run-tests.sh                       # behaviour — 12 tests
-./run-tests.sh tests/invariants.ts   # invariants — 4 tests
+./run-tests.sh                         # behaviour — 14 tests
+./run-tests.sh tests/invariants.ts     # invariants — 4 tests
+./run-tests.sh tests/fee-collision.ts  # one wallet in two roles — 4 tests
 ```
 
 Each suite initialises the `Config` singleton, so they run on separate ledgers.
+`SKIP_BUILD=1` reuses `target/` as it is — useful while a fuzz run holds the
+`.so`, or when only the tests changed.
+
+`initialize_config` only accepts the program's upgrade authority, so the suites
+pass the loader's `ProgramData` account (`programDataPda` in `tests/helpers.ts`)
+and the fuzz harness points that account's authority at its payer before
+calling it.
 
 `tests/memebook.ts` checks that each instruction does what it says.
 `tests/invariants.ts` checks the properties that must hold in *every* reachable
@@ -200,18 +208,25 @@ able to touch them, because settling requires reading the account the program
 can no longer parse.
 
 This happened here while fixing the fee-snapshot issue below, on devnet, which
-is the only good place for it to happen. Either freeze the layouts before
-mainnet or add explicit versioning and a migration path first.
+is the only good place for it to happen. Every account now carries a leading
+`version: u8` (`ACCOUNT_VERSION` in `state.rs`) so a future program can tell
+old accounts from new and migrate them deliberately instead of failing on
+them. The migration instruction itself is not written; treat the layouts as
+frozen from the version-byte commit onward and write it when a change is
+actually needed.
 
 ## Status
 
-The program is complete, with 12 behavioural and 4 invariant tests passing,
-including the maturity and default paths.
+The program is complete: 14 behavioural, 4 invariant and 4 aliasing tests pass,
+including the maturity and default paths, and a 2,000-iteration Trident
+campaign runs with no panics and no invariant violations.
 
-**It has not been audited.** Passing tests are not a safety argument — they
-show the failures I thought to look for, not the ones I did not. Do not put
-real money behind this without a professional audit.
+It has had one source-level security review (Claude, September 2026 — twelve
+findings, all closed in code; see the audit report). That is not a
+professional audit. Passing tests and a closed findings list show the
+failures somebody thought to look for, not the ones nobody did.
 
-Known gaps before mainnet: no Rust-level fuzzing (Trident) yet, upgrade
-authority and config admin must be moved to a multisig, and the indexer's
-per-signature backfill should sit behind a Geyser or webhook stream at volume.
+Known gaps before mainnet: upgrade authority and config admin must be moved to
+a multisig, `MIN_DURATION_SECONDS` should be raised from its 60-second devnet
+floor, and the indexer's per-signature backfill should sit behind a Geyser or
+webhook stream at volume.

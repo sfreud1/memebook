@@ -67,6 +67,13 @@ export async function nowTs(connection: Connection): Promise<number> {
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+export const BPF_LOADER_UPGRADEABLE = new PublicKey("BPFLoaderUpgradeab1e11111111111111111111111");
+
+/** The upgradeable loader's ProgramData account for `programId`. `initialize_config`
+ *  requires the signer to be its upgrade authority, so tests pass it explicitly. */
+export const programDataPda = (programId: PublicKey) =>
+  PublicKey.findProgramAddressSync([programId.toBuffer()], BPF_LOADER_UPGRADEABLE)[0];
+
 /** Assert that a transaction fails, and that the error mentions `needle`. */
 export async function expectFailure(p: Promise<unknown>, needle: string) {
   try {

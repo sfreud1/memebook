@@ -10,6 +10,8 @@ pub enum MemebookError {
     NotPendingAdmin,
     #[msg("Fee exceeds the hard-coded maximum")]
     FeeTooHigh,
+    #[msg("Only the program's upgrade authority may initialise it")]
+    NotUpgradeAuthority,
 
     #[msg("Loan duration outside the permitted range")]
     InvalidDuration,
@@ -30,8 +32,6 @@ pub enum MemebookError {
     InsufficientOfferLiquidity,
     #[msg("Draw is smaller than the offer's minimum")]
     DrawBelowMinimum,
-    #[msg("Offer still has open loans or undrawn principal")]
-    OfferNotEmpty,
 
     #[msg("Loan is not active")]
     LoanNotActive,
@@ -40,8 +40,8 @@ pub enum MemebookError {
     #[msg("Loan has not matured yet")]
     LoanNotMatured,
 
-    #[msg("Collateral mint carries a Token-2022 extension that makes escrow unsafe")]
-    UnsafeCollateralMint,
+    #[msg("Mint carries a Token-2022 extension that makes escrow unsafe")]
+    UnsafeMint,
     #[msg("Mint account could not be parsed")]
     InvalidMint,
     #[msg("Token transfer moved a different amount than expected")]

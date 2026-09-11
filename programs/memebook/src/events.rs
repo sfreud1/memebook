@@ -64,3 +64,32 @@ pub struct LoanDefaulted {
     pub default_fee: u64,
     pub ts: i64,
 }
+
+/// Fee changes only affect loans opened afterwards — rates are snapshotted onto
+/// each loan — but an observer still needs to see them happen.
+#[event]
+pub struct FeesUpdated {
+    pub origination_fee_bps: u16,
+    pub interest_fee_bps: u16,
+    pub default_fee_bps: u16,
+    pub ts: i64,
+}
+
+#[event]
+pub struct FeeRecipientUpdated {
+    pub fee_recipient: Pubkey,
+    pub ts: i64,
+}
+
+#[event]
+pub struct PausedUpdated {
+    pub paused: bool,
+    pub ts: i64,
+}
+
+#[event]
+pub struct AdminTransferred {
+    pub previous_admin: Pubkey,
+    pub new_admin: Pubkey,
+    pub ts: i64,
+}

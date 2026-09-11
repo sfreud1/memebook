@@ -129,13 +129,19 @@ export async function applyEvent(db: Db, ev: DecodedEvent, meta: EventMeta): Pro
       // Draw down the offer. Guarded on the loan insert having been new, which
       // `xmax = 0`-style checks cannot express portably, so instead recompute
       // availability from the loans actually recorded against this offer.
+      // Scoped to loans opened since this offer was created. A cancelled offer
+      // is closed on chain and the same lender can re-derive the address with
+      // the same id; loans from the earlier incarnation must not count against
+      // the new one's liquidity.
       await db.query(
         `UPDATE offers o
             SET principal_available = GREATEST(
                   o.principal_total - COALESCE(
-                    (SELECT SUM(l.principal_amount) FROM loans l WHERE l.offer = o.pubkey), 0), 0),
+                    (SELECT SUM(l.principal_amount) FROM loans l
+                      WHERE l.offer = o.pubkey AND l.created_slot >= o.created_slot), 0), 0),
                 loans_opened = COALESCE(
-                  (SELECT COUNT(*) FROM loans l WHERE l.offer = o.pubkey), 0),
+                  (SELECT COUNT(*) FROM loans l
+                    WHERE l.offer = o.pubkey AND l.created_slot >= o.created_slot), 0),
                 updated_at = $2
           WHERE o.pubkey = $1`,
         [offer, n(f(d, "start_ts")) ?? ts]

@@ -16,6 +16,7 @@ import {
   tokenBalance,
   nowTs,
   sleep,
+  programDataPda,
 } from "./helpers";
 
 /**
@@ -86,6 +87,8 @@ describe("fee recipient / lender collision", () => {
       .accountsPartial({
         payer: payer.publicKey,
         config: configPda,
+        program: program.programId,
+        programData: programDataPda(program.programId),
         systemProgram: SystemProgram.programId,
       })
       .signers([payer])

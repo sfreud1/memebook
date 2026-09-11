@@ -1,7 +1,7 @@
 use crate::constants::*;
 use crate::errors::MemebookError;
 use crate::events::OfferCreated;
-use crate::state::{Config, Offer};
+use crate::state::{ACCOUNT_VERSION, Config, Offer};
 use crate::utils::*;
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{
@@ -119,6 +119,7 @@ pub fn handler(
     );
 
     let offer = &mut ctx.accounts.offer;
+    offer.version = ACCOUNT_VERSION;
     offer.lender = ctx.accounts.lender.key();
     offer.principal_mint = ctx.accounts.principal_mint.key();
     offer.collateral_mint = ctx.accounts.collateral_mint.key();
