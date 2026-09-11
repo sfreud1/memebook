@@ -1,0 +1,662 @@
+<title>Memebook Güvenlik Denetimi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --paper: #f4f5f7;
+    --surface: #ffffff;
+    --surface-2: #eceef2;
+    --ink: #16191e;
+    --ink-2: #3d444d;
+    --muted: #6a7380;
+    --rule: #d7dbe1;
+    --rule-strong: #b9c0c9;
+    --accent: #0f5c6e;
+    --accent-ink: #0b4756;
+    --accent-tint: #e3eff2;
+
+    --sev-critical: #a3201b;
+    --sev-high: #b4530a;
+    --sev-medium: #8a6100;
+    --sev-low: #2e5aac;
+    --sev-info: #5b6470;
+
+    --st-fixed-ink: #1b5e3f;
+    --st-fixed-bg: #dff1e6;
+    --st-accepted-ink: #5c4a8a;
+    --st-accepted-bg: #e9e3f5;
+    --st-open-ink: #8f2e2a;
+    --st-open-bg: #f8e3e1;
+
+    --code-bg: #eef0f3;
+    --shadow: 0 1px 2px rgba(22, 25, 30, .06), 0 8px 24px -16px rgba(22, 25, 30, .25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #121519;
+      --surface: #1a1e24;
+      --surface-2: #22272f;
+      --ink: #e7e5e0;
+      --ink-2: #c4c7cc;
+      --muted: #939ca8;
+      --rule: #2a3039;
+      --rule-strong: #3a414c;
+      --accent: #7cc4d4;
+      --accent-ink: #a6dbe6;
+      --accent-tint: #15303a;
+
+      --sev-critical: #f0776f;
+      --sev-high: #f0a05a;
+      --sev-medium: #e0bd57;
+      --sev-low: #86a9ea;
+      --sev-info: #a3acb8;
+
+      --st-fixed-ink: #9fdcbb;
+      --st-fixed-bg: #17362a;
+      --st-accepted-ink: #cbbdf0;
+      --st-accepted-bg: #2f2747;
+      --st-open-ink: #f2a39e;
+      --st-open-bg: #452421;
+
+      --code-bg: #0e1114;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #121519;
+    --surface: #1a1e24;
+    --surface-2: #22272f;
+    --ink: #e7e5e0;
+    --ink-2: #c4c7cc;
+    --muted: #939ca8;
+    --rule: #2a3039;
+    --rule-strong: #3a414c;
+    --accent: #7cc4d4;
+    --accent-ink: #a6dbe6;
+    --accent-tint: #15303a;
+
+    --sev-critical: #f0776f;
+    --sev-high: #f0a05a;
+    --sev-medium: #e0bd57;
+    --sev-low: #86a9ea;
+    --sev-info: #a3acb8;
+
+    --st-fixed-ink: #9fdcbb;
+    --st-fixed-bg: #17362a;
+    --st-accepted-ink: #cbbdf0;
+    --st-accepted-bg: #2f2747;
+    --st-open-ink: #f2a39e;
+    --st-open-bg: #452421;
+
+    --code-bg: #0e1114;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .wrap { max-width: 78rem; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+  .prose { max-width: 68ch; }
+
+  h1, h2, h3, h4 {
+    font-family: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    font-variation-settings: "opsz" 96;
+    line-height: 1.1;
+    text-wrap: balance;
+    margin: 0;
+    color: var(--ink);
+  }
+  h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; letter-spacing: -.02em; }
+  h2 { font-size: 1.55rem; font-weight: 700; letter-spacing: -.01em; margin-top: 4rem; margin-bottom: 1rem; }
+  h3 { font-size: 1.2rem; font-weight: 600; }
+  p { margin: 0 0 1rem; }
+  .eyebrow {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: .74rem;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  code, .mono {
+    font-family: "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+    font-size: .86em;
+    font-variant-numeric: tabular-nums;
+  }
+  code { background: var(--code-bg); padding: .1em .4em; border-radius: 3px; color: var(--ink-2); }
+  pre { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 6px; padding: 1rem 1.2rem; overflow-x: auto; margin: 0 0 1rem; }
+  pre code { background: none; padding: 0; font-size: .82rem; line-height: 1.55; color: var(--ink); }
+
+  /* ---------- masthead ---------- */
+  .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 2rem; display: grid; gap: 1.6rem; }
+  .masthead .lede { font-size: 1.15rem; color: var(--ink-2); max-width: 60ch; margin: 0; }
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1rem 2rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+  }
+  .meta dt { font-family: "Bricolage Grotesque", sans-serif; font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 .2rem; }
+  .meta dd { margin: 0; font-size: .95rem; }
+  .meta dd.mono { font-size: .8rem; word-break: break-all; }
+
+  /* ---------- summary tiles ---------- */
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .75rem; margin: 1.5rem 0 2rem; }
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--tile-accent, var(--rule-strong));
+    border-radius: 4px;
+    padding: .9rem 1rem .8rem;
+  }
+  .tile .n { font-family: "Bricolage Grotesque", sans-serif; font-size: 2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tile .l { font-family: "Bricolage Grotesque", sans-serif; font-size: .74rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: .35rem; }
+  .tile .s { font-size: .85rem; color: var(--ink-2); margin-top: .35rem; }
+
+  /* ---------- chips ---------- */
+  .chip {
+    display: inline-flex; align-items: center; gap: .4em;
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: .72rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    padding: .18em .6em; border-radius: 999px; white-space: nowrap;
+    line-height: 1.5;
+  }
+  .chip.sev { color: var(--sev); border: 1.5px solid currentColor; }
+  .chip.sev::before { content: ""; width: .5em; height: .5em; border-radius: 50%; background: currentColor; }
+  .sev-critical { --sev: var(--sev-critical); }
+  .sev-high { --sev: var(--sev-high); }
+  .sev-medium { --sev: var(--sev-medium); }
+  .sev-low { --sev: var(--sev-low); }
+  .sev-info { --sev: var(--sev-info); }
+  .chip.st-fixed { background: var(--st-fixed-bg); color: var(--st-fixed-ink); }
+  .chip.st-accepted { background: var(--st-accepted-bg); color: var(--st-accepted-ink); }
+  .chip.st-open { background: var(--st-open-bg); color: var(--st-open-ink); }
+  .chip.scope { background: var(--surface-2); color: var(--ink-2); }
+
+  /* ---------- findings ---------- */
+  .finding {
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 0 1.5rem;
+    padding: 1.6rem 0;
+    border-top: 1px solid var(--rule);
+  }
+  .finding:last-of-type { border-bottom: 1px solid var(--rule); }
+  .finding .id {
+    font-family: "JetBrains Mono", monospace;
+    font-size: .82rem; font-weight: 500;
+    color: var(--muted);
+    padding-top: .35rem;
+  }
+  .finding .head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; margin-bottom: .5rem; }
+  .finding h3 { flex-basis: 100%; margin-top: .25rem; }
+  .finding .body { max-width: 68ch; }
+  .finding dl { display: grid; grid-template-columns: 5.5rem 1fr; gap: .35rem 1rem; margin: .6rem 0 0; }
+  .finding dt { font-family: "Bricolage Grotesque", sans-serif; font-size: .74rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: .25rem; }
+  .finding dd { margin: 0; }
+  .finding dd p { margin: 0 0 .4rem; }
+  .finding .ref { font-size: .82rem; color: var(--muted); margin-top: .5rem; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); margin: 1rem 0 1.5rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { text-align: left; padding: .6rem .9rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: "Bricolage Grotesque", sans-serif; font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
+  tr:last-child td { border-bottom: 0; }
+  td.num, th.num { text-align: right; font-family: "JetBrains Mono", monospace; font-size: .84rem; font-variant-numeric: tabular-nums; }
+  td.ok { color: var(--st-fixed-ink); }
+
+  /* ---------- risk list ---------- */
+  .risk { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0 1.5rem; padding: 1.2rem 0; border-top: 1px solid var(--rule); }
+  .risk:last-of-type { border-bottom: 1px solid var(--rule); }
+  .risk .id { font-family: "JetBrains Mono", monospace; font-size: .82rem; color: var(--muted); padding-top: .3rem; }
+  .risk .head { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .6rem; margin-bottom: .3rem; }
+  .risk h3 { flex-basis: 100%; font-size: 1.05rem; }
+  .risk p { max-width: 68ch; margin-bottom: .4rem; }
+
+  /* ---------- checklist ---------- */
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 1rem 0 0; max-width: 68ch; }
+  .steps li { counter-increment: step; display: grid; grid-template-columns: 2.4rem 1fr; gap: .8rem; padding: .8rem 0; border-top: 1px solid var(--rule); }
+  .steps li:last-child { border-bottom: 1px solid var(--rule); }
+  .steps li::before { content: counter(step, decimal-leading-zero); font-family: "JetBrains Mono", monospace; font-size: .85rem; color: var(--accent); padding-top: .2rem; }
+  .steps b { font-family: "Bricolage Grotesque", sans-serif; font-weight: 600; }
+  .steps small { display: block; color: var(--ink-2); font-size: .92rem; }
+
+  .callout { background: var(--accent-tint); border-left: 3px solid var(--accent); padding: .9rem 1.1rem; border-radius: 0 4px 4px 0; max-width: 68ch; margin: 1rem 0 1.5rem; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.5rem 2.5rem; }
+  ul.plain { padding-left: 1.2rem; margin: 0 0 1rem; }
+  ul.plain li { margin-bottom: .35rem; }
+
+  .foot { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .85rem; }
+
+  @media (max-width: 720px) {
+    .finding, .risk { grid-template-columns: 1fr; }
+    .finding .id, .risk .id { padding-top: 0; margin-bottom: .3rem; }
+    .finding dl { grid-template-columns: 1fr; gap: .15rem; }
+    .finding dt { padding-top: .5rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .tile { transition: transform .15s ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">Güvenlik denetimi · Solana programı</div>
+      <h1 style="margin-top:.5rem">Memebook Güvenlik Denetimi</h1>
+    </div>
+    <p class="lede">Vadeli, oracle'sız, likidasyonsuz eşler-arası kredi programının kaynak seviyesinde incelemesi. On iki bulgu, yedi belgelenmiş risk, kapsama ve mainnet öncesi yapılacaklar.</p>
+    <dl class="meta">
+      <div><dt>Program</dt><dd class="mono">GGVLRegjz8K7op4KzJELS8GpEqHHCv7XagZBkEpCvsjh</dd></div>
+      <div><dt>Depo</dt><dd><a href="https://github.com/sfreud1/memebook">github.com/sfreud1/memebook</a></dd></div>
+      <div><dt>İncelenen commit</dt><dd class="mono">3a78e62</dd></div>
+      <div><dt>Tarih</dt><dd>11 Eylül 2026</dd></div>
+      <div><dt>İnceleyen</dt><dd>Claude Fable 5.1 — bağımsız firma denetimi değildir</dd></div>
+      <div><dt>Araç zinciri</dt><dd>Anchor 1.2.0 · Solana 3.1.10 · Trident 0.13.0-rc.4</dd></div>
+    </dl>
+  </header>
+
+  <!-- ================================================================ -->
+  <h2>Özet</h2>
+  <div class="prose">
+    <p>Program küçük ve okunabilir: on bir instruction, üç hesap türü, tek bir aritmetik yardımcı modülü. Fon çalınmasına yol açan bir yol bulunmadı. Bulunanların en ağırı iki sınıfta toplanıyor: <em>koşullar kredinin altından değişebiliyordu</em> (ücret oranı, anapara mint'inin güvenliği) ve <em>operasyonel tuzaklar</em> (deploy sonrası yarış, hesap düzeninin sürümsüz olması). Hepsi kapatıldı.</p>
+    <p>Kalan riskler programın değil, işletmenin: upgrade authority hâlâ tek bir cüzdanda. Bu düzeltilmeden mainnet'e çıkılmamalı; aşağıda ayrı bir bölümü var.</p>
+  </div>
+
+  <div class="tiles">
+    <div class="tile" style="--tile-accent: var(--sev-high)"><div class="n">3</div><div class="l">Yüksek</div><div class="s">3 düzeltildi</div></div>
+    <div class="tile" style="--tile-accent: var(--sev-medium)"><div class="n">5</div><div class="l">Orta</div><div class="s">5 düzeltildi</div></div>
+    <div class="tile" style="--tile-accent: var(--sev-low)"><div class="n">3</div><div class="l">Düşük</div><div class="s">3 düzeltildi</div></div>
+    <div class="tile" style="--tile-accent: var(--sev-info)"><div class="n">1</div><div class="l">Bilgi</div><div class="s">1 düzeltildi</div></div>
+    <div class="tile" style="--tile-accent: var(--st-accepted-ink)"><div class="n">7</div><div class="l">Belgelenmiş risk</div><div class="s">3'ü mainnet öncesi iş</div></div>
+  </div>
+
+  <div class="callout">
+    <p><strong>Açık kalan program bulgusu yok.</strong> On iki bulgunun on ikisi kodda kapatıldı; her biri test veya fuzz ile doğrulandı. Açık kalanlar programın dışında: multisig, sabit değerlerin mainnet ayarı ve devnet'in yeniden deploy'u.</p>
+  </div>
+
+  <!-- ================================================================ -->
+  <h2>Kapsam ve yöntem</h2>
+  <div class="cols">
+    <div>
+      <div class="eyebrow">İncelenen</div>
+      <ul class="plain">
+        <li><code>programs/memebook/src/</code> — 11 instruction, <code>state.rs</code>, <code>utils.rs</code>, <code>constants.rs</code>, <code>errors.rs</code>, <code>events.rs</code></li>
+        <li><code>indexer/src/</code> — olay projeksiyonları ve API (zincirle tutarlılık açısından)</li>
+        <li>Test paketleri ve Trident fuzz harness'i</li>
+      </ul>
+      <div class="eyebrow" style="margin-top:1rem">Bakılmayan</div>
+      <ul class="plain">
+        <li>Bağımlılık sürümlerinin CVE taraması (Anchor, spl-token-2022 crate'leri)</li>
+        <li>Frontend tedarik zinciri (npm) ve XSS yüzeyi</li>
+        <li>Biçimsel doğrulama; ekonomik saldırı simülasyonu</li>
+      </ul>
+    </div>
+    <div>
+      <div class="eyebrow">Yöntem</div>
+      <ul class="plain">
+        <li>Her instruction'ın hesap kısıtları satır satır: imza, sahiplik, PDA türetimi, <code>mut</code>/<code>dup</code>, <code>init_if_needed</code> yeniden başlatma</li>
+        <li>Aritmetik: her yuvarlamanın yönü (faiz ve teminat yukarı, ücret aşağı), <code>u128</code> ara değerler, taşma ve sıfır durumları</li>
+        <li>Token-2022 uzantı matrisi: hangi uzantı hangi transfer yolunu kırar</li>
+        <li>Hesap kapatma ve adres yeniden kullanımı — zincirde ve indexer'da</li>
+        <li>Yetki değişikliklerinin gözlemlenebilirliği (olaylar)</li>
+        <li>22 el yazımı test + 2.000 turluk kapsama güdümlü fuzz koşusu</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ================================================================ -->
+  <h2>Bulgular</h2>
+  <p class="prose" style="color:var(--ink-2)">Önem sırasına göre. "Etki" satırı bulgunun düzeltilmeden önceki halini anlatır.</p>
+
+  <article class="finding">
+    <div class="id">MB-01</div>
+    <div>
+      <div class="head"><span class="chip sev sev-high">Yüksek</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program</span>
+        <h3>Ücret oranı kredinin altından değişebiliyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd><code>repay</code> ve <code>claim_default</code> ücret oranını o anki <code>Config</code>'den okuyordu, krediden değil.</dd>
+          <dt>Etki</dt><dd>Admin faiz payını %5'ten tavan olan %30'a çekince, zaten açık kredilerde lender'ın fiyatladığı getiriden daha büyük pay kesilirdi. Çalınmış bir admin anahtarı aynı yolu kullanır.</dd>
+          <dt>Düzeltme</dt><dd>Oranlar <code>accept_offer</code> anında <code>Loan.interest_fee_bps</code> ve <code>Loan.default_fee_bps</code> olarak yazılıyor; kapanış oradan okuyor. Sonraki ücret değişiklikleri yalnızca yeni kredileri etkiler.</dd>
+          <dt>Kanıt</dt><dd>Test: kredi açıkken oran yükseltilir, ödeme orijinal oranla doğrulanır.</dd>
+        </dl>
+        <div class="ref">Commit <span class="mono">7e71927</span> · <code>accept_offer.rs</code>, <code>repay.rs</code>, <code>claim_default.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-02</div>
+    <div>
+      <div class="head"><span class="chip sev sev-high">Yüksek</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program</span>
+        <h3>Anapara mint'i Token-2022 taramasından geçmiyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd>Uzantı taraması yalnızca teminat mint'inde vardı. Oysa lender'ın anaparası ilan anından itibaren programın kasasında duruyor.</dd>
+          <dt>Etki</dt><dd><code>PermanentDelegate</code> taşıyan bir anapara mint'inde mint sahibi kasayı boşaltabilir. Sonradan açılan bir <code>TransferFee</code>, borçlunun kayıtlı borcundan daha azını almasına yol açar.</dd>
+          <dt>Düzeltme</dt><dd><code>create_offer</code> iki mint'i de <code>assert_escrowed_mint_is_safe</code>'ten geçiriyor.</dd>
+        </dl>
+        <div class="ref">Commit <span class="mono">7e71927</span> · <code>create_offer.rs</code>, <code>utils.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-03</div>
+    <div>
+      <div class="head"><span class="chip sev sev-high">Yüksek</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program · deploy</span>
+        <h3><code>initialize_config</code> yarışa açıktı</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd>Deploy'dan sonra <code>initialize_config</code>'i ilk çağıran kim olursa olsun admin ve ücret alıcısı oluyordu. Devnet'te önemsiz; mainnet'te deploy işlemini gören herkes önden koşabilir.</dd>
+          <dt>Etki</dt><dd>Protokolün admin anahtarı ve ücret geliri bir yabancıya geçer. Tek çare yeni program adresiyle baştan deploy — mainnet'te kritik seviyede.</dd>
+          <dt>Düzeltme</dt><dd>Çağıran, programın upgrade authority'si olmak zorunda. Instruction <code>program</code> ve <code>program_data</code> hesaplarını alıyor; <code>programdata_address</code> eşleşmesi ve <code>upgrade_authority_address == payer</code> doğrulanıyor (<code>NotUpgradeAuthority</code>).</dd>
+          <dt>Kanıt</dt><dd>Test: upgrade authority olmayan bir cüzdanın çağrısı <code>NotUpgradeAuthority</code> ile reddedilir. Üç paket ve fuzz harness'i ProgramData hesabını geçirerek çalışıyor; fuzz'da 2.000/2.000 başarılı başlatma.</dd>
+        </dl>
+        <div class="ref">Bu commit · <code>initialize_config.rs</code>, <code>tests/helpers.ts</code>, <code>trident-tests/fuzz_0/test_fuzz.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-04</div>
+    <div>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program</span>
+        <h3>Origination ücreti anaparanın tamamını yutabiliyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd>APR tavanı %1.000, vade tavanı 365 gün: yıllık faiz anaparanın on katına çıkıyor. Faizin %10'u olan origination ücreti bu uçta anaparadan büyük.</dd>
+          <dt>Etki</dt><dd>Borçluya sıfır ödeyen (ya da çıkarmada taşan) ama tam borç yükleyen bir kredi açılabiliyordu.</dd>
+          <dt>Düzeltme</dt><dd><code>principal_disbursed &gt; 0</code> zorunlu; aksi <code>OriginationFeeExceedsPrincipal</code> ile reddediliyor.</dd>
+        </dl>
+        <div class="ref">Commit <span class="mono">7e71927</span> · <code>accept_offer.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-05</div>
+    <div>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program</span>
+        <h3><code>Pausable</code> ve <code>ConfidentialMintBurn</code> uzantıları taramadan geçiyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd>Reddedilen uzantı listesinde sekiz kalem vardı; mint sahibinin tüm transferleri durdurabildiği <code>Pausable</code> eksikti.</dd>
+          <dt>Etki</dt><dd>Pause anında ne <code>repay</code> ne <code>claim_default</code> transfer yapabilir: o mint'teki her açık kredi, teminatıyla birlikte süresiz kilitlenir.</dd>
+          <dt>Düzeltme</dt><dd>İki uzantı da <code>UnsafeMint</code> ile reddediliyor. Liste artık on kalem.</dd>
+        </dl>
+        <div class="ref">Bu commit · <code>utils.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-06</div>
+    <div>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program · upgrade</span>
+        <h3>Hesap düzeninde sürüm baytı yoktu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd><code>Config</code>, <code>Offer</code>, <code>Loan</code> boyutu değişince eski hesaplar okunamaz hale geliyor. Bu oturumda devnet'te bire bir yaşandı: <code>Loan</code>'a iki alan eklenince eski krediler erişilemez oldu.</dd>
+          <dt>Etki</dt><dd>Mainnet'te bir upgrade, açık kredileri kalıcı olarak kilitleyebilir — ne ödeme ne temerrüt talebi çalışır.</dd>
+          <dt>Düzeltme</dt><dd>Üç hesaba da ilk alan olarak <code>version: u8</code> eklendi (<code>ACCOUNT_VERSION = 1</code>). İleride bir migration, eski ve yeni hesabı bununla ayırt eder. Bu değişiklik kendisi de düzeni değiştirdiği için devnet'teki mevcut hesaplar atıl kaldı; mainnet öncesi <em>son</em> düzen değişikliği bu olmalı.</dd>
+        </dl>
+        <div class="ref">Bu commit · <code>state.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-07</div>
+    <div>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">İndexer</span>
+        <h3>Yeniden kullanılan kredi adresi eski satırı canlı gösteriyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd>Kapanan kredi hesabı zincirde kapatılıyor; aynı borçlu ve aynı <code>loan_id</code> aynı adresi verir. <code>ON CONFLICT DO NOTHING</code>, eski "ödendi" satırını yeni canlı kredinin yerinde bırakıyordu.</dd>
+          <dt>Etki</dt><dd>Borçlu panelinde canlı kredi görünmez; vade sessizce geçer, teminat gider.</dd>
+          <dt>Düzeltme</dt><dd><code>LoanOpened</code> ve <code>OfferCreated</code> projeksiyonları kapanmış satırı <code>ON CONFLICT DO UPDATE … WHERE status &lt;&gt; 'active'</code> ile değiştiriyor.</dd>
+        </dl>
+        <div class="ref">Commit <span class="mono">7e71927</span> · <code>indexer/src/projections.ts</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-08</div>
+    <div>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">İndexer</span>
+        <h3>Yeniden kullanılan teklif adresi likiditeyi eksik gösteriyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd><code>principal_available</code>, adrese bağlı <em>tüm</em> kredilerin toplamından hesaplanıyordu. İptal edilip aynı id ile yeniden açılan bir teklifte eski kredilerin tutarı da düşülüyordu.</dd>
+          <dt>Etki</dt><dd>Defterde olduğundan az — hatta sıfır — likidite görünür; çekilebilecek teklif çekilemez sanılır.</dd>
+          <dt>Düzeltme</dt><dd>Toplam, <code>l.created_slot &gt;= o.created_slot</code> ile teklifin kendi ömrüne sınırlandı.</dd>
+        </dl>
+        <div class="ref">Bu commit · <code>indexer/src/projections.ts</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-09</div>
+    <div>
+      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program</span>
+        <h3>Anapara varış hesabının sahibi doğrulanmıyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd><code>borrower_principal_account</code>'ta yalnızca mint kontrolü vardı. Borçlu anaparayı sahibi olmadığı bir hesaba — örneğin teklifin kendi kasasına — yönlendirebiliyordu.</dd>
+          <dt>Etki</dt><dd>Hırsızlık yok (işlemi imzalayan borçlunun kendisi), ama "kasa = çekilmemiş anapara" değişmezi bozulur ve indexer zincirden ayrışır.</dd>
+          <dt>Düzeltme</dt><dd><code>token::authority = borrower</code>.</dd>
+        </dl>
+        <div class="ref">Bu commit · <code>accept_offer.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-10</div>
+    <div>
+      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program · gözlemlenebilirlik</span>
+        <h3>Admin işlemleri iz bırakmıyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd><code>update_config</code>'in dört işlemi (ücretler, alıcı, pause, admin devri) olay yaymıyordu.</dd>
+          <dt>Etki</dt><dd>İndexer ve izleme değişikliği göremez; kullanıcı ücret değişikliğini ancak kapanışta fark eder. Ele geçirilmiş bir admin anahtarının izi kalmaz.</dd>
+          <dt>Düzeltme</dt><dd><code>FeesUpdated</code>, <code>FeeRecipientUpdated</code>, <code>PausedUpdated</code>, <code>AdminTransferred</code> olayları.</dd>
+        </dl>
+        <div class="ref">Bu commit · <code>update_config.rs</code>, <code>events.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-11</div>
+    <div>
+      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Program · kullanılabilirlik</span>
+        <h3>Aynı cüzdan iki rolde olunca geçerli işlem reddediliyordu</h3></div>
+      <div class="body">
+        <dl>
+          <dt>Ne</dt><dd>Lender aynı zamanda ücret alıcısıysa (operatörün kendi defterini beslemesi) ya da kendi ilanına borçlanıyorsa, Anchor'ın duplicate-mutable koruması işlemi reddediyordu.</dd>
+          <dt>Etki</dt><dd>Geri ödeme yapılamaz, kredi temerrüde düşer. Devnet'te operatör tarafından bulundu.</dd>
+          <dt>Düzeltme</dt><dd>Kullanıcı token hesaplarına <code>dup</code>. Bu hesaplar token programına ait; Anchor onları geri yazmadığı için aynı hesaba iki ardışık CPI transferi çakışmaz.</dd>
+        </dl>
+        <div class="ref">Commit <span class="mono">8352375</span>, <span class="mono">9bc33b8</span> · <code>accept_offer.rs</code>, <code>repay.rs</code>, <code>claim_default.rs</code></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="finding">
+    <div class="id">MB-12</div>
+    <div>
+      <div class="head"><span class="chip sev sev-info">Bilgi</span><span class="chip st-fixed">Düzeltildi</span><span class="chip scope">Temizlik</span>
+        <h3>Ölü kod, yanıltıcı ad, yarışlı test</h3></div>
+      <div class="body">
+        <ul class="plain">
+          <li><code>OfferNotEmpty</code> hiçbir yerde kullanılmıyordu — kaldırıldı.</li>
+          <li><code>UnsafeCollateralMint</code> artık iki mint için de dönüyordu — <code>UnsafeMint</code> olarak yeniden adlandırıldı.</li>
+          <li>Değişmez testi iki krediden ilkinin vadesini bekleyip ikisini de talep ediyordu — en geç vadeyi bekliyor.</li>
+          <li>İndexer, simüle edilmiş işlemlerin <code>1111…</code> yer tutucu imzasından hayali pozisyon üretiyordu — <span class="mono">7d8b842</span>'de kapatılmıştı.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
+  <!-- ================================================================ -->
+  <h2>Belgelenmiş riskler</h2>
+  <p class="prose" style="color:var(--ink-2)">Programda düzeltilmeyen, ama bilinerek taşınan ya da programın dışında kapatılacak olanlar.</p>
+
+  <article class="risk">
+    <div class="id">R-01</div>
+    <div>
+      <div class="head"><span class="chip sev sev-critical">Kritik</span><span class="chip st-open">Açık · mainnet öncesi</span>
+        <h3>Upgrade authority tek bir cüzdanda</h3></div>
+      <p>Programı yükseltebilen anahtar her şeyi değiştirebilir — ücret tavanları dahil. Bu anahtar tek bir Phantom cüzdanında durduğu sürece protokolün güvenliği o cüzdanın güvenliği kadardır ve bu denetimin bir anlamı kalmaz. Squads multisig (örn. 2/3) şart; <code>Config.admin</code> de aynı multisig'e taşınmalı.</p>
+    </div>
+  </article>
+
+  <article class="risk">
+    <div class="id">R-02</div>
+    <div>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-open">Açık · arayüz işi</span>
+        <h3>Klasik SPL <code>freeze_authority</code></h3></div>
+      <p>Token-2022 dışında, klasik bir mint'in dondurma yetkisi kasayı dondurabilir; o anda geri ödeme de temerrüt talebi de çalışmaz. Programda engellemek, dondurma yetkisi olan her mint'i reddetmek demek — memecoin'lerin büyük kısmı elenir. Karar: programda serbest, arayüzde teklif kartında görünür uyarı ("bu token'ın dondurma yetkisi var").</p>
+    </div>
+  </article>
+
+  <article class="risk">
+    <div class="id">R-03</div>
+    <div>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-accepted">Kabul · migration gerekince</span>
+        <h3>Düzen dondurma</h3></div>
+      <p>Sürüm baytı (MB-06) migration'ı <em>mümkün</em> kılar, ama migration instruction'ı yazılmadı. Mainnet sonrası bir alan eklemek gerekirse: yeni boyutla <code>realloc</code> eden ve <code>version</code>'ı yükselten bir instruction gerekir; eski sürüm hesapları o arada okunmaya devam edecek şekilde. Bunu bugün yazmak yerine ihtiyaç çıkınca yazmak kabul edildi — üç hesabın düzeni bu commit'ten sonra dondurulmuş sayılır.</p>
+    </div>
+  </article>
+
+  <article class="risk">
+    <div class="id">R-04</div>
+    <div>
+      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-open">Açık · sabit değişikliği</span>
+        <h3><code>MIN_DURATION_SECONDS = 60</code></h3></div>
+      <p>Dakikalık vade devnet'te temerrüt yolunu hızlı denemek için kondu. Cluster saati birkaç saniye kayabilir; bir dakikalık kredide bu, vadenin anlamlı bir yüzdesidir. Mainnet için taban en az bir saat olmalı — tek satırlık sabit değişikliği, düzen etkilemez.</p>
+    </div>
+  </article>
+
+  <article class="risk">
+    <div class="id">R-05</div>
+    <div>
+      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-accepted">Kabul</span>
+        <h3>Teklif son kullanma tarihinin üst sınırı yok</h3></div>
+      <p>Lender kasada yıllarca bekleyen bir teklif bırakabilir. Kilitlenen yalnızca kendi parasıdır ve <code>cancel_offer</code> her an çalışır; protokole maliyeti yok.</p>
+    </div>
+  </article>
+
+  <article class="risk">
+    <div class="id">R-06</div>
+    <div>
+      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-accepted">Kabul · işletme prosedürü</span>
+        <h3><code>fee_recipient</code> yanlış adrese ayarlanabilir</h3></div>
+      <p>Admin ücret alıcısını ölü bir anahtara çevirirse ücretler oraya akar; <code>init_if_needed</code> ATA'yı kim olursa olsun açar. Programda önlemi yok (adresin "canlı" olduğunu zincir bilemez). Multisig'den yapılan her değişiklikte alıcının önce küçük bir transferle doğrulanması prosedür olarak yeterli; <code>FeeRecipientUpdated</code> olayı (MB-10) izlemeyi mümkün kılıyor.</p>
+    </div>
+  </article>
+
+  <article class="risk">
+    <div class="id">R-07</div>
+    <div>
+      <div class="head"><span class="chip sev sev-info">Ürün kararı</span><span class="chip st-accepted">Kabul</span>
+        <h3>Temerrütte fazla teminat iade edilmez</h3></div>
+      <p>Lender teminatın tamamını alır; borç tutarını aşan kısım borçluya dönmez. Offerbook ile aynı model — oracle'sız kalmanın bedeli. Arayüz bunu ilan kartında ve borçlanma onayında açıkça söylüyor; program seviyesinde değişiklik planlanmıyor.</p>
+    </div>
+  </article>
+
+  <!-- ================================================================ -->
+  <h2>Kapsama</h2>
+  <p class="prose">Her bulgunun düzeltmesi bir el testine ya da fuzz akışına bağlı. Üç paket ayrı ledger'da koşar çünkü her biri <code>Config</code> tekilini kendisi kurar.</p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Paket</th><th>Ne soruyor</th><th class="num">Test</th><th>Sonuç</th></tr></thead>
+      <tbody>
+        <tr><td><code>tests/memebook.ts</code></td><td>Her instruction dediğini yapıyor mu; upgrade authority şartı, ücret anlık görüntüsü, iki mint taraması, sıfır ödeme reddi</td><td class="num">14</td><td class="ok">geçti</td></tr>
+        <tr><td><code>tests/invariants.ts</code></td><td>150 rastgele işlemden sonra kasa = kalan anapara, kasa = kayıtlı teminat, token korunumu, bölünmüş çekimin ucuza gelmemesi</td><td class="num">4</td><td class="ok">geçti</td></tr>
+        <tr><td><code>tests/fee-collision.ts</code></td><td>Lender = ücret alıcısı, kendi ilanına borçlanma gibi hesap örtüşmeleri</td><td class="num">4</td><td class="ok">geçti</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:2rem">Fuzz koşusu — Trident, 2.000 tur</h3>
+  <p class="prose">Her tur programı sıfırdan kurar, sonra altı akışı rastgele sırada ve rastgele değerlerle, saati ileri sararak koşturur. Başarısız çağrıların çoğu bilinçli: üretici %5 oranında geçersiz girdi üretir ve fuzzer yeni kod yolu olarak <code>require!</code> reddini de ödüllendirdiği için uzun koşuda ret yollarına kayar.</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Instruction</th><th class="num">Çağrı</th><th class="num">Başarılı</th><th class="num">Reddedildi</th><th class="num">Panik</th></tr></thead>
+      <tbody>
+        <tr><td><code>initialize_config</code></td><td class="num">2 000</td><td class="num">2 000</td><td class="num">0</td><td class="num">0</td></tr>
+        <tr><td><code>create_offer</code></td><td class="num">19 765</td><td class="num">1 439</td><td class="num">18 326</td><td class="num">0</td></tr>
+        <tr><td><code>accept_offer</code></td><td class="num">943</td><td class="num">305</td><td class="num">638</td><td class="num">0</td></tr>
+        <tr><td><code>repay</code></td><td class="num">259</td><td class="num">205</td><td class="num">54</td><td class="num">0</td></tr>
+        <tr><td><code>claim_default</code></td><td class="num">253</td><td class="num">59</td><td class="num">194</td><td class="num">0</td></tr>
+        <tr><td><code>cancel_offer</code></td><td class="num">1 019</td><td class="num">1 019</td><td class="num">0</td><td class="num">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="prose">Üç değişmez her akıştan sonra kontrol edilir (teklif kasası, kredi kasası, anapara muhasebesi); ihlal yok. Tohum: <span class="mono">c4d9a6ef…251d4</span>. "Hata bulunamadı" demek, "bu ayarlarla bu sürede bulunamadı" demek — CI'da gece koşusu önerilir.</p>
+
+  <!-- ================================================================ -->
+  <h2>Mainnet öncesi yapılacaklar</h2>
+  <p class="prose">Sırayla. İlk üçü yapılmadan gerçek para konulmamalı.</p>
+  <ol class="steps">
+    <li><div><b>Squads multisig</b><small>Upgrade authority ve <code>Config.admin</code> aynı multisig'e. Tek cüzdan mainnet'te kabul edilemez (R-01).</small></div></li>
+    <li><div><b>Sabitleri mainnet'e ayarla</b><small><code>MIN_DURATION_SECONDS</code> ≥ 3 600 (R-04). Düzen değişmiyor, yalnızca kural.</small></div></li>
+    <li><div><b>Düzeni dondur</b><small>Bu commit'ten sonra <code>Config</code>/<code>Offer</code>/<code>Loan</code>'a alan eklenmez; gerekirse migration instruction'ı ile (R-03).</small></div></li>
+    <li><div><b>Devnet'i yeniden deploy et ve tam turu koş</b><small>Yeni düzen için ~2,2 SOL gerekiyor; cüzdanda 1,35 var. Eski hesaplar atıl, <code>scripts/reset.ts</code> ile temiz defter kurulur. Teklif → çekim → ödeme → temerrüt → talep, gerçek cüzdanlarla.</small></div></li>
+    <li><div><b>Arayüz uyarıları</b><small>Dondurma yetkisi olan mint'ler için kart üzerinde uyarı (R-02).</small></div></li>
+    <li><div><b>Projeyi iCloud'dan çıkar</b><small>Desktop eşitlemesi derlemeyi üç kez bozdu; <code>~/code/memebook</code> gibi eşitlenmeyen bir yere.</small></div></li>
+    <li><div><b>Altyapı</b><small>Ücretli RPC (Helius/Triton), indexer için Postgres ve Geyser/webhook kaynağı, frontend için Vercel.</small></div></li>
+    <li><div><b>Gece fuzz koşusu + bug bounty</b><small>CI'da <code>FUZZ_ITERATIONS=50000</code>; açılışta Immunefi.</small></div></li>
+    <li><div><b>İsteğe bağlı: dış denetim</b><small>Bu rapor bir firma denetiminin yerini tutmaz. TVL büyürse OtterSec, Neodyme veya Zellic'e bu rapor ve testlerle gidilir — saatlerini bilinen şeylere değil, bilinmeyenlere harcarlar.</small></div></li>
+  </ol>
+
+  <!-- ================================================================ -->
+  <h2>Ek — sayılar</h2>
+  <div class="cols">
+    <div>
+      <div class="eyebrow">Ücretler (Config, varsayılan)</div>
+      <div class="tablewrap"><table>
+        <tr><td>Origination</td><td class="num">faizin %10'u</td><td>anaparadan, açılışta</td></tr>
+        <tr><td>Faiz payı</td><td class="num">faizin %5'i</td><td>lender'dan, ödemede</td></tr>
+        <tr><td>Temerrüt</td><td class="num">teminatın %0,1'i</td><td>lender'dan, talepte</td></tr>
+        <tr><td>Tavan (sabit)</td><td class="num">%30 · %30 · %1</td><td>admin aşamaz</td></tr>
+      </table></div>
+    </div>
+    <div>
+      <div class="eyebrow">Sınırlar (constants.rs)</div>
+      <div class="tablewrap"><table>
+        <tr><td>Vade</td><td class="num">60 sn – 365 gün</td><td>R-04'e bakın</td></tr>
+        <tr><td>APR tavanı</td><td class="num">%1 000</td><td>100 000 bps</td></tr>
+        <tr><td>Faiz</td><td class="num">basit, yukarı yuvarlar</td><td>ceil(P·apr·t / 1e4·31 536 000)</td></tr>
+        <tr><td>Teminat</td><td class="num">pro-rata, yukarı yuvarlar</td><td>bölünmüş çekim ucuza gelmez</td></tr>
+        <tr><td>Ücret</td><td class="num">aşağı yuvarlar</td><td>protokol lehine yuvarlama yok</td></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    Bu belge Claude Fable 5.1 tarafından kaynak koduna doğrudan erişimle yazıldı; bağımsız bir denetim firmasının raporu değildir ve öyle sunulmamalıdır. Bulgular <span class="mono">3a78e62</span> commit'inde kapatılmıştır; sonraki değişiklikler bu raporun kapsamı dışındadır.
+  </div>
+
+</div>

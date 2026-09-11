@@ -222,7 +222,7 @@ including the maturity and default paths, and a 2,000-iteration Trident
 campaign runs with no panics and no invariant violations.
 
 It has had one source-level security review (Claude, September 2026 — twelve
-findings, all closed in code; see the audit report). That is not a
+findings, all closed in code — [docs/audit-2026-09-11.html](docs/audit-2026-09-11.html)). That is not a
 professional audit. Passing tests and a closed findings list show the
 failures somebody thought to look for, not the ones nobody did.
 
