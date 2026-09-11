@@ -53,7 +53,11 @@ export default function LendPage() {
   const load = () =>
     fetchMarkets()
       .then((m) => {
-        setMarkets(m);
+        // A market with neither an open offer nor a live loan is a leftover
+        // from history and only adds noise to a page about where to lend now.
+        setMarkets(
+          m.filter((x) => x.offer_count > 0 || x.active_loans > 0)
+        );
         setError(null);
       })
       .catch(() => setError("Veri sunucusuna ulaşılamıyor."));

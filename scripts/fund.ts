@@ -1,98 +1,114 @@
 /**
- * Tops up a wallet on the local validator so a human can actually drive the UI:
- * SOL for fees, principal tokens to repay with, collateral tokens to lock.
+ * Tops up a wallet so a human can drive the UI: SOL for fees, plus a balance in
+ * every token the frontend knows how to name.
  *
- * Usage: npx tsx scripts/fund.ts <wallet-address> [usdc-mint] [meme-mint]
- * The mints default to whatever the running indexer is currently serving.
+ * Usage: npx tsx scripts/fund.ts <wallet-address> [<wallet-address> …]
  */
 import {
-  Connection,
-  Keypair,
-  LAMPORTS_PER_SOL,
-  PublicKey,
-  SystemProgram,
-  Transaction,
-  sendAndConfirmTransaction,
+  Connection, Keypair, LAMPORTS_PER_SOL, PublicKey,
+  SystemProgram, Transaction, sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
-  TOKEN_PROGRAM_ID,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
-  getMint,
+  TOKEN_PROGRAM_ID, getMint, mintTo,
+  getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
 } from "@solana/spl-token";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
 const RPC = process.env.RPC_URL ?? "http://127.0.0.1:8899";
-const API = process.env.API_URL ?? "http://127.0.0.1:8080";
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const registry: Record<string, { symbol: string; usd?: number }> = JSON.parse(
+  readFileSync(new URL("../app/src/lib/token-registry.json", import.meta.url), "utf8")
+);
+
+/** Roughly a few thousand dollars of each, so nothing is the limiting factor. */
+function amountFor(usd: number | undefined): number {
+  if (!usd || usd <= 0) return 1_000_000;
+  return Math.max(1, Math.round(5_000 / usd));
+}
+
+async function retry<T>(label: string, fn: () => Promise<T>, attempts = 6): Promise<T> {
+  let delay = 600;
+  for (let i = 0; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i >= attempts - 1) throw e;
+      await sleep(delay);
+      delay = Math.min(delay * 2, 8_000);
+    }
+  }
+}
 
 async function main() {
-  const target = process.argv[2];
-  if (!target) throw new Error("usage: fund.ts <wallet-address> [usdc-mint] [meme-mint]");
-  const owner = new PublicKey(target);
+  const targets = process.argv.slice(2);
+  if (targets.length === 0) throw new Error("usage: fund.ts <wallet-address> …");
 
   const connection = new Connection(RPC, "confirmed");
   const payer = Keypair.fromSecretKey(
-    Uint8Array.from(
-      JSON.parse(readFileSync(`${homedir()}/.config/solana/id.json`, "utf8"))
-    )
+    Uint8Array.from(JSON.parse(readFileSync(`${homedir()}/.config/solana/id.json`, "utf8")))
   );
+  const local = RPC.includes("127.0.0.1") || RPC.includes("localhost");
+  const sol = Number(process.env.SOL_AMOUNT ?? (local ? 100 : 0.2));
 
-  let usdcMint = process.argv[3];
-  let memeMint = process.argv[4];
-  if (!usdcMint || !memeMint) {
-    const res = await fetch(`${API}/offers`);
-    const { offers } = (await res.json()) as any;
-    if (!offers?.length) throw new Error("no offers in the book; run scripts/seed.ts first");
-    usdcMint ??= offers[0].principal_mint;
-    memeMint ??= offers[0].collateral_mint;
-  }
+  for (const target of targets) {
+    const owner = new PublicKey(target);
+    console.log(`\n${owner.toBase58()}`);
 
-  // A local validator hands out SOL freely. Devnet's faucet is rate limited to
-  // the point of being unusable, so fall back to transferring from the wallet
-  // that funded the deployment.
-  const requested = Number(process.env.SOL_AMOUNT ?? 0) || (RPC.includes("127.0.0.1") ? 100 : 0.3);
-  let funded = false;
-  try {
-    const sig = await connection.requestAirdrop(owner, requested * LAMPORTS_PER_SOL);
-    await connection.confirmTransaction(
-      { signature: sig, ...(await connection.getLatestBlockhash()) },
-      "confirmed"
-    );
-    funded = true;
-    console.log(`SOL      ${requested}  (airdrop)`);
-  } catch {
-    /* fall through to a transfer */
-  }
-  if (!funded) {
-    const tx = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: payer.publicKey,
-        toPubkey: owner,
-        lamports: Math.round(requested * LAMPORTS_PER_SOL),
-      })
-    );
-    await sendAndConfirmTransaction(connection, tx, [payer], { commitment: "confirmed" });
-    console.log(`SOL      ${requested}  (transfer from ${payer.publicKey.toBase58().slice(0, 8)}…)`);
-  }
+    // A local validator gives SOL away; devnet's faucet does not, so the
+    // deployer covers it instead.
+    let funded = false;
+    if (local) {
+      try {
+        const sig = await connection.requestAirdrop(owner, sol * LAMPORTS_PER_SOL);
+        await connection.confirmTransaction(
+          { signature: sig, ...(await connection.getLatestBlockhash()) }, "confirmed");
+        funded = true;
+      } catch { /* fall through */ }
+    }
+    if (!funded) {
+      await retry("sol", () =>
+        sendAndConfirmTransaction(
+          connection,
+          new Transaction().add(SystemProgram.transfer({
+            fromPubkey: payer.publicKey, toPubkey: owner,
+            lamports: Math.round(sol * LAMPORTS_PER_SOL),
+          })),
+          [payer], { commitment: "confirmed" }
+        )
+      );
+    }
+    console.log(`  SOL    ${sol}`);
 
-  for (const [label, mintStr, whole] of [
-    ["USDC", usdcMint!, 100_000n],
-    ["MEME", memeMint!, 100_000_000n],
-  ] as const) {
-    const mint = new PublicKey(mintStr);
-    const info = await getMint(connection, mint, "confirmed", TOKEN_PROGRAM_ID);
-    const amount = whole * 10n ** BigInt(info.decimals);
-    const ata = await getOrCreateAssociatedTokenAccount(
-      connection, payer, mint, owner, true, "confirmed", undefined, TOKEN_PROGRAM_ID
-    );
-    await mintTo(
-      connection, payer, mint, ata.address, payer, amount, [], undefined, TOKEN_PROGRAM_ID
-    );
-    console.log(`${label}     ${whole.toLocaleString("en-US")}   (${mintStr})`);
-  }
+    for (const [mintStr, meta] of Object.entries(registry)) {
+      const mint = new PublicKey(mintStr);
+      const info = await retry(`mint ${meta.symbol}`, () =>
+        getMint(connection, mint, "confirmed", TOKEN_PROGRAM_ID));
+      const ata = getAssociatedTokenAddressSync(mint, owner, true, TOKEN_PROGRAM_ID);
+      const whole = amountFor(meta.usd);
 
-  console.log(`\nfunded ${owner.toBase58()}`);
+      // Create then mint without reading the account back: a load-balanced RPC
+      // will serve that read from a node that has not caught up yet.
+      await retry(`ata ${meta.symbol}`, () =>
+        sendAndConfirmTransaction(
+          connection,
+          new Transaction().add(
+            createAssociatedTokenAccountIdempotentInstruction(
+              payer.publicKey, ata, owner, mint, TOKEN_PROGRAM_ID)
+          ),
+          [payer], { commitment: "confirmed" }
+        )
+      );
+      await retry(`send ${meta.symbol}`, () =>
+        mintTo(connection, payer, mint, ata, payer,
+          BigInt(Math.round(whole * 10 ** info.decimals)), [], undefined, TOKEN_PROGRAM_ID)
+      );
+      console.log(`  ${meta.symbol.padEnd(6)} ${whole.toLocaleString("tr-TR")}`);
+      await sleep(300);
+    }
+  }
 }
 
 main().catch((e) => { console.error(e.message ?? e); process.exit(1); });
