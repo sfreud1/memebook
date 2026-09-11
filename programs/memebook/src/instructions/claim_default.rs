@@ -102,7 +102,7 @@ pub fn handler(ctx: Context<ClaimDefault>) -> Result<()> {
     require!(now > loan.maturity_ts, MemebookError::LoanNotMatured);
 
     let vault_balance = live_token_amount(&ctx.accounts.loan_collateral_vault)?;
-    let default_fee = fee_of(vault_balance, ctx.accounts.config.default_fee_bps)?;
+    let default_fee = fee_of(vault_balance, loan.default_fee_bps)?;
     let to_lender = vault_balance
         .checked_sub(default_fee)
         .ok_or(MemebookError::MathOverflow)?;

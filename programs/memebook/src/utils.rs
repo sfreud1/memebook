@@ -71,15 +71,15 @@ pub fn live_token_amount(account: &InterfaceAccount<TokenAccount>) -> Result<u64
     Ok(state.base.amount)
 }
 
-/// Rejects collateral mints whose token program can move, freeze, or silently
-/// resize tokens sitting in our escrow PDA.
+/// Rejects mints whose token program can move, freeze, or silently resize
+/// tokens sitting in one of this program's escrow PDAs.
 ///
 /// `PermanentDelegate` is the fatal one: it lets the mint authority transfer
 /// escrowed collateral straight out from under the lender. `TransferHook` hands
 /// arbitrary code a CPI on every move. `TransferFeeConfig` means the amount that
 /// arrives is not the amount that was sent. None of these are survivable for a
 /// protocol whose entire job is holding somebody else's token for 30 days.
-pub fn assert_collateral_mint_is_safe(mint_ai: &AccountInfo) -> Result<()> {
+pub fn assert_escrowed_mint_is_safe(mint_ai: &AccountInfo) -> Result<()> {
     // Classic SPL Token mints have no extension data by construction.
     if mint_ai.owner == &anchor_spl::token::ID {
         return Ok(());

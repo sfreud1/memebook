@@ -1,29 +1,29 @@
 {
-  "GDFuLit1XNqroC3qCL9V6ke9DtMWgQ421miFKK1dBSER": {
+  "G27X2fuF4D3M9Lda2Es52cTkzcfky7uBmxSLM8L38VLa": {
     "symbol": "tUSD",
     "name": "Test Dolar",
     "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMyNzc1Y2EiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+JDwvdGV4dD48L3N2Zz4=",
     "usd": 1
   },
-  "6YxTM3h8kX3j8Y6Sz8HtUrtowu2YAUfocTVgFSSTFWm8": {
+  "DKeoxqvsVdykKMmkZ5xuicKo9JnXjCTBPPumEjzYMy4k": {
     "symbol": "tSOL",
     "name": "Test SOL",
     "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM5OTQ1ZmYiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmZiIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UzwvdGV4dD48L3N2Zz4=",
     "usd": 98
   },
-  "CLPCTTsFrggeoxCdjPFPHF2WzXbh7fnkQsL8Gxi2VgrF": {
+  "9NfrXYStGnxPootNS3h4ZmDkDLJ9hN7Zyv69pnpSvVWH": {
     "symbol": "DOGGO",
     "name": "Doggo Token",
     "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNlOGEzM2QiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzFhMTIwNyIgdGV4dC1hbmNob3I9Im1pZGRsZSI+RDwvdGV4dD48L3N2Zz4=",
     "usd": 0.0509
   },
-  "3YYXeC1R6qQcywHiVaurcucmYXzS7pNT5UM3dgPS823e": {
+  "4sEdLinikv4ZuneWxSNQMYqkkNo6pfdaTbNVoQsGFg1d": {
     "symbol": "PEPPY",
     "name": "Peppy",
     "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiMzZmI5NTAiLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzA4MTQwYSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+UDwvdGV4dD48L3N2Zz4=",
     "usd": 0.00124
   },
-  "B2N7wH3iaiUXnvLvCVFQyCKcxBXfqUK7V2NvMJg9QeLE": {
+  "7cVsqQ7JAiwdgmkf8Hwdx43Wvzo97bgXhPmJTT3fxnXW": {
     "symbol": "MOONZ",
     "name": "Moonz",
     "logo": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiNhMzcxZjciLz48dGV4dCB4PSIzMiIgeT0iNDIiIGZvbnQtZmFtaWx5PSJzeXN0ZW0tdWksc2Fucy1zZXJpZiIgZm9udC1zaXplPSIyOCIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iIzBkMDYxOCIgdGV4dC1hbmNob3I9Im1pZGRsZSI+TTwvdGV4dD48L3N2Zz4=",

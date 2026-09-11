@@ -71,6 +71,14 @@ pub struct Loan {
     /// Interest owed at maturity. Fixed at accept time and never accrues:
     /// there is no rate curve, no utilisation, no oracle.
     pub interest_amount: u64,
+    /// The protocol's cut, as agreed when this loan opened.
+    ///
+    /// Read from the loan rather than from config at settlement. Otherwise an
+    /// admin could raise the rate after the fact and take a larger share of a
+    /// return the lender had already committed to — terms that move under a
+    /// position are exactly what this protocol promises not to do.
+    pub interest_fee_bps: u16,
+    pub default_fee_bps: u16,
     pub start_ts: i64,
     pub maturity_ts: i64,
     pub status: LoanStatus,

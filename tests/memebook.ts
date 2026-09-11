@@ -568,6 +568,90 @@ describe("memebook", () => {
     assert.isNull(await connection.getAccountInfo(loan));
   });
 
+  it("honours the fee agreed when the loan opened, not the one set later",
+    async function () {
+    this.timeout(300_000);
+
+    // A lender prices an offer against a known protocol cut. If raising that
+    // cut afterwards changed what already-open loans pay out, the terms were
+    // never fixed — which is the one thing this protocol promises.
+    const offerId = new BN(7);
+    const offer = offerPda(lender.publicKey, offerId);
+    await program.methods
+      .createOffer(offerId, PRINCIPAL_TOTAL, COLLATERAL_TOTAL, MIN_DRAW, APR_BPS, DURATION,
+        new BN((await nowTs(connection)) + 7 * 24 * 3600))
+      .accountsPartial({
+        lender: lender.publicKey, config: configPda, offer,
+        principalMint: usdc, collateralMint: meme,
+        offerVault: offerVaultPda(offer),
+        lenderPrincipalAccount: lenderUsdc,
+        principalTokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([lender])
+      .rpc();
+
+    const loanId = new BN(70);
+    const loan = loanPda(borrower.publicKey, loanId);
+    await program.methods
+      .acceptOffer(loanId, PRINCIPAL_TOTAL)
+      .accountsPartial({
+        borrower: borrower.publicKey, config: configPda, offer, loan,
+        principalMint: usdc, collateralMint: meme,
+        offerVault: offerVaultPda(offer),
+        loanCollateralVault: loanVaultPda(loan),
+        borrowerCollateralAccount: borrowerMeme,
+        borrowerPrincipalAccount: borrowerUsdc,
+        feeRecipient: feeRecipient.publicKey,
+        feePrincipalAccount: feeUsdc,
+        principalTokenProgram: TOKEN_PROGRAM_ID,
+        collateralTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([borrower])
+      .rpc();
+
+    // Admin raises the cut to the hard cap after the fact.
+    await program.methods
+      .setFees(ORIGINATION_FEE_BPS, 3000, DEFAULT_FEE_BPS)
+      .accountsPartial({ admin: admin.publicKey, config: configPda })
+      .signers([admin])
+      .rpc();
+
+    const lenderAta = getAssociatedTokenAddressSync(usdc, lender.publicKey, true, TOKEN_PROGRAM_ID);
+    const before = await tokenBalance(connection, lenderAta);
+
+    await program.methods
+      .repay()
+      .accountsPartial({
+        borrower: borrower.publicKey, lender: lender.publicKey,
+        feeRecipient: feeRecipient.publicKey, config: configPda, loan,
+        principalMint: usdc, collateralMint: meme,
+        loanCollateralVault: loanVaultPda(loan),
+        borrowerPrincipalAccount: borrowerUsdc,
+        borrowerCollateralAccount: borrowerMeme,
+        lenderPrincipalAccount: lenderAta,
+        feePrincipalAccount: feeUsdc,
+        principalTokenProgram: TOKEN_PROGRAM_ID,
+        collateralTokenProgram: TOKEN_PROGRAM_ID,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([borrower])
+      .rpc();
+
+    // The lender receives what the original 5% implied, not the new 30%.
+    assert.equal((await tokenBalance(connection, lenderAta)) - before, EXPECTED_LENDER_RECEIVED);
+
+    // Put it back so later tests see the fees they expect.
+    await program.methods
+      .setFees(ORIGINATION_FEE_BPS, INTEREST_FEE_BPS, DEFAULT_FEE_BPS)
+      .accountsPartial({ admin: admin.publicKey, config: configPda })
+      .signers([admin])
+      .rpc();
+  });
+
   // --------------------------------------------------------------- cancel ---
 
   it("cancels an offer and returns only the undrawn principal", async () => {

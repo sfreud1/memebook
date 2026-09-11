@@ -12,7 +12,13 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
-import idl from "../target/idl/memebook.json" assert { type: "json" };
+import { readFileSync } from "node:fs";
+
+/// IDL_PATH lets this run against an older account layout, which is what a
+/// cluster holding accounts written before a struct change needs.
+const idl = JSON.parse(
+  readFileSync(process.env.IDL_PATH ?? new URL("../target/idl/memebook.json", import.meta.url), "utf8")
+);
 
 const RPC = process.env.RPC_URL ?? "https://api.devnet.solana.com";
 

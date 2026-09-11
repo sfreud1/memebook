@@ -128,7 +128,7 @@ pub fn handler(ctx: Context<Repay>) -> Result<()> {
 
     let principal_amount = loan.principal_amount;
     let interest_amount = loan.interest_amount;
-    let interest_fee = fee_of(interest_amount, ctx.accounts.config.interest_fee_bps)?;
+    let interest_fee = fee_of(interest_amount, loan.interest_fee_bps)?;
     let lender_received = principal_amount
         .checked_add(interest_amount)
         .ok_or(MemebookError::MathOverflow)?

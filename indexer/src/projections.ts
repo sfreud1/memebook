@@ -40,7 +40,26 @@ export async function applyEvent(db: Db, ev: DecodedEvent, meta: EventMeta): Pro
            apr_bps, duration_seconds, expiry_ts, status,
            created_slot, created_at, updated_at
          ) VALUES ($1,$2,$3,$4,$5,$5,$6,$7,$8,$9,$10,'open',$11,$12,$12)
-         ON CONFLICT (pubkey) DO NOTHING`,
+         -- A cancelled offer's account is closed, and the same lender may
+         -- derive that address again with the same id. Skipping the insert
+         -- would leave the stale, settled row standing in for a live offer.
+         ON CONFLICT (pubkey) DO UPDATE SET
+           lender = EXCLUDED.lender,
+           principal_mint = EXCLUDED.principal_mint,
+           collateral_mint = EXCLUDED.collateral_mint,
+           principal_total = EXCLUDED.principal_total,
+           principal_available = EXCLUDED.principal_available,
+           collateral_total = EXCLUDED.collateral_total,
+           min_draw = EXCLUDED.min_draw,
+           apr_bps = EXCLUDED.apr_bps,
+           duration_seconds = EXCLUDED.duration_seconds,
+           expiry_ts = EXCLUDED.expiry_ts,
+           status = 'open',
+           loans_opened = 0,
+           created_slot = EXCLUDED.created_slot,
+           created_at = EXCLUDED.created_at,
+           updated_at = EXCLUDED.updated_at
+         WHERE offers.status <> 'open'`,
         [
           s(f(d, "offer")), s(f(d, "lender")),
           s(f(d, "principal_mint")), s(f(d, "collateral_mint")),
@@ -75,7 +94,28 @@ export async function applyEvent(db: Db, ev: DecodedEvent, meta: EventMeta): Pro
            principal_amount, collateral_amount, interest_amount, origination_fee,
            start_ts, maturity_ts, status, created_slot, updated_at
          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'active',$13,$11)
-         ON CONFLICT (pubkey) DO NOTHING`,
+         -- Settled loans are closed on chain, freeing the address for the same
+         -- borrower to reuse with the same id. Without this the second loan is
+         -- dropped and the interface keeps showing the first one, settled.
+         ON CONFLICT (pubkey) DO UPDATE SET
+           offer = EXCLUDED.offer,
+           borrower = EXCLUDED.borrower,
+           lender = EXCLUDED.lender,
+           principal_mint = EXCLUDED.principal_mint,
+           collateral_mint = EXCLUDED.collateral_mint,
+           principal_amount = EXCLUDED.principal_amount,
+           collateral_amount = EXCLUDED.collateral_amount,
+           interest_amount = EXCLUDED.interest_amount,
+           origination_fee = EXCLUDED.origination_fee,
+           start_ts = EXCLUDED.start_ts,
+           maturity_ts = EXCLUDED.maturity_ts,
+           status = 'active',
+           settled_ts = NULL,
+           lender_received = NULL,
+           collateral_claimed = NULL,
+           created_slot = EXCLUDED.created_slot,
+           updated_at = EXCLUDED.updated_at
+         WHERE loans.status <> 'active'`,
         [
           loan, offer, s(f(d, "borrower")), s(f(d, "lender")),
           s(f(d, "principal_mint")), s(f(d, "collateral_mint")),

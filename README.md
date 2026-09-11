@@ -190,6 +190,19 @@ FUZZ_ITERATIONS=50000 FUZZ_FLOWS=100 trident fuzz run fuzz_0
 A failure prints the master seed; `trident fuzz debug fuzz_0 <SEED>` replays
 that exact run.
 
+## Before mainnet: freeze the account layout
+
+Adding a field to `Loan` or `Offer` changes the account size, and the upgraded
+program can no longer deserialise accounts written by the old one. On a test
+cluster that is an inconvenience. In production it would strand every open
+position at once — collateral and principal both locked, with no instruction
+able to touch them, because settling requires reading the account the program
+can no longer parse.
+
+This happened here while fixing the fee-snapshot issue below, on devnet, which
+is the only good place for it to happen. Either freeze the layouts before
+mainnet or add explicit versioning and a migration path first.
+
 ## Status
 
 The program is complete, with 12 behavioural and 4 invariant tests passing,

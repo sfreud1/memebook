@@ -144,7 +144,15 @@ pub fn handler(ctx: Context<AcceptOffer>, loan_id: u64, draw_amount: u64) -> Res
     let origination_fee = fee_of(interest_amount, config.origination_fee_bps)?;
     let principal_disbursed = draw_amount
         .checked_sub(origination_fee)
-        .ok_or(MemebookError::MathOverflow)?;
+        .ok_or(MemebookError::OriginationFeeExceedsPrincipal)?;
+    // At the top of the permitted APR range a year's interest reaches ten times
+    // the principal, and a fee charged as a share of that can swallow the
+    // disbursement whole. Refuse rather than open a loan that hands the
+    // borrower nothing while still obliging them to repay.
+    require!(
+        principal_disbursed > 0,
+        MemebookError::OriginationFeeExceedsPrincipal
+    );
 
     // ---- collateral in (measured, never assumed) ----
     let coll_before = live_token_amount(&ctx.accounts.loan_collateral_vault)?;
@@ -236,6 +244,8 @@ pub fn handler(ctx: Context<AcceptOffer>, loan_id: u64, draw_amount: u64) -> Res
     loan.principal_amount = draw_amount;
     loan.collateral_amount = collateral_received;
     loan.interest_amount = interest_amount;
+    loan.interest_fee_bps = config.interest_fee_bps;
+    loan.default_fee_bps = config.default_fee_bps;
     loan.start_ts = now;
     loan.maturity_ts = maturity_ts;
     loan.status = LoanStatus::Active;

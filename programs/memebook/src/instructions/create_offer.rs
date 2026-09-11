@@ -86,9 +86,13 @@ pub fn handler(
     let now = Clock::get()?.unix_timestamp;
     require!(expiry_ts > now, MemebookError::InvalidExpiry);
 
-    // The collateral mint is the one that sits in our escrow for the life of
-    // every loan drawn from this offer, so it is the one that has to be safe.
-    assert_collateral_mint_is_safe(&ctx.accounts.collateral_mint.to_account_info())?;
+    // Both sides sit in an escrow this program controls: collateral for the
+    // life of every loan, and the lender's principal from the moment the offer
+    // is posted. A `PermanentDelegate` on either lets the mint authority reach
+    // in and take it; a transfer fee turned on later means the amount that
+    // arrives is not the amount sent. Screen both.
+    assert_escrowed_mint_is_safe(&ctx.accounts.collateral_mint.to_account_info())?;
+    assert_escrowed_mint_is_safe(&ctx.accounts.principal_mint.to_account_info())?;
 
     // Measure what actually landed rather than trusting the argument. Even with
     // fee-bearing mints rejected above, this is the invariant we want to hold.

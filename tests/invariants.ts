@@ -499,8 +499,13 @@ describe("invariants", () => {
     const b = await doAccept(borrower, offer, 150_000_000n);
     await checkInvariants("pre-maturity");
 
-    const acc: any = await (program.account as any).loan.fetch(a);
-    while ((await nowTs(connection)) <= acc.maturityTs.toNumber()) await sleep(2000);
+    // Both loans must be past maturity, not just the first. They are opened a
+    // moment apart, so the second matures a moment later — waiting only on the
+    // first leaves the claim racing it.
+    const accA: any = await (program.account as any).loan.fetch(a);
+    const accB: any = await (program.account as any).loan.fetch(b);
+    const lastMaturity = Math.max(accA.maturityTs.toNumber(), accB.maturityTs.toNumber());
+    while ((await nowTs(connection)) <= lastMaturity) await sleep(2000);
 
     // Past maturity repayment must be closed and claiming must be open, with
     // no window in which both or neither work.

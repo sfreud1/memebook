@@ -47,6 +47,9 @@ pub enum MemebookError {
     #[msg("Token transfer moved a different amount than expected")]
     TransferAmountMismatch,
 
+    #[msg("Origination fee would consume the entire disbursement")]
+    OriginationFeeExceedsPrincipal,
+
     #[msg("Arithmetic overflow")]
     MathOverflow,
 }
