@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { fetchMarkets, fetchOffers, type Market, type Offer } from "@/lib/api";
+import { fetchMarkets, fetchOffers, fetchStats, type Market, type Offer } from "@/lib/api";
 import {
   collateralFor,
   feeOf,
@@ -24,16 +25,18 @@ import { useTokenBalance } from "@/lib/useTokenBalance";
 import { useTx } from "@/lib/useTx";
 import { acceptOffer, prepare, type TxPrep } from "@/lib/program";
 import { tokenSymbol, usdValue, formatUsd } from "@/lib/tokens";
-import { Explainer } from "@/components/Explainer";
 import { TokenBadge } from "@/components/TokenBadge";
 import { FreezeWarning } from "@/components/FreezeWarning";
-import { EmptyState, Feature, FeeStrip, Icon, PageTitle, Pill, SectionHeading, Stat } from "@/components/ui";
+import { WalletPanel } from "@/components/WalletPanel";
+import { EmptyState, Feature, FeeCard, Icon, PageHeader, Pill, SectionHeading, SkeletonCard, Stat } from "@/components/ui";
 
 const SURELER = [
   { label: "7 güne kadar", seconds: 7 * 86_400 },
   { label: "14 güne kadar", seconds: 14 * 86_400 },
   { label: "30 güne kadar", seconds: 30 * 86_400 },
 ];
+
+type Stats = Record<string, string | number>;
 
 export default function BorrowPage() {
   const { publicKey } = useWallet();
@@ -42,6 +45,7 @@ export default function BorrowPage() {
   const tx = useTx();
 
   const [markets, setMarkets] = useState<Market[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [collateral, setCollateral] = useState("");
   const [amount, setAmount] = useState("500");
   const [maxDuration, setMaxDuration] = useState<number | null>(null);
@@ -56,12 +60,13 @@ export default function BorrowPage() {
   useEffect(() => {
     let stop = false;
     const load = () =>
-      fetchMarkets()
-        .then((all) => {
+      Promise.all([fetchMarkets(), fetchStats().catch(() => null)])
+        .then(([all, s]) => {
           if (stop) return;
           // Markets with nothing on offer and nothing outstanding are history.
           const m = all.filter((x) => x.offer_count > 0 || x.active_loans > 0);
           setMarkets(m);
+          setStats(s);
           setCollateral((c) => c || m[0]?.collateral_mint || "");
           setApiError(null);
           setLoaded(true);
@@ -157,22 +162,33 @@ export default function BorrowPage() {
   }
 
   const activeCollateral = collateral && collateral !== "__all__" ? collateral : undefined;
+  const n = (k: string) => (stats ? Number(stats[k] ?? 0) : undefined);
 
   return (
-    <div className="space-y-5">
-      <FeeStrip />
-      <PageTitle title="Borç al." marker={`${offers.length} teklif`} />
+    <div className="space-y-6">
+      <PageHeader
+        title="Borç al"
+        lede="Token'ını kilitle, nakit al. Vade dolmadan ödersen token geri gelir; ödemezsen token gider, para sende kalır."
+      />
 
       <div className="grid items-start gap-5 lg:grid-cols-[1fr_320px]">
         {/* ------------------------------------------------------ main */}
         <div className="space-y-5">
+          <div className="card grid grid-cols-2 divide-x divide-line sm:grid-cols-4">
+            {[
+              ["Açık teklif", n("open_offers")],
+              ["Açık kredi", n("active_loans")],
+              ["Ödenen", n("repaid_loans")],
+              ["Temerrüt", n("defaulted_loans")],
+            ].map(([label, v]) => (
+              <div key={String(label)} className="px-5 py-3.5">
+                <p className="eyebrow">{label}</p>
+                <p className="num mt-1 font-display text-[20px] font-bold">{v === undefined ? "…" : v}</p>
+              </div>
+            ))}
+          </div>
+
           <section className="card">
-            <div className="border-b border-line px-5 py-3.5">
-              <h2 className="h3">Ne istiyorsun?</h2>
-              <p className="mt-0.5 text-[12px] text-muted">
-                Tutarı ve teminatı yaz; aşağıdaki teklifler ona göre hesaplanır.
-              </p>
-            </div>
             <div className="grid gap-5 p-5 md:grid-cols-2">
               <div>
                 <label className="label" htmlFor="amount">
@@ -233,10 +249,7 @@ export default function BorrowPage() {
                 </button>
               ))}
               {maxDuration !== null && (
-                <button
-                  onClick={() => setMaxDuration(null)}
-                  className="ml-1 text-[12px] font-medium text-muted hover:text-fg"
-                >
+                <button onClick={() => setMaxDuration(null)} className="ml-1 text-[12px] font-medium text-muted hover:text-fg">
                   temizle
                 </button>
               )}
@@ -244,9 +257,7 @@ export default function BorrowPage() {
           </section>
 
           {apiError && (
-            <div className="rounded-field border border-bad/20 bg-bad-soft px-4 py-3 text-[13px] text-bad">
-              {apiError}
-            </div>
+            <div className="rounded-field border border-bad/20 bg-bad-soft px-4 py-3 text-[13px] text-bad">{apiError}</div>
           )}
 
           <section>
@@ -255,11 +266,7 @@ export default function BorrowPage() {
               right={
                 <label className="flex items-center gap-2 text-[12px] text-muted">
                   Sırala
-                  <select
-                    className="field h-9 w-auto text-[12px]"
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value as typeof sort)}
-                  >
+                  <select className="field h-9 w-auto text-[12px]" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
                     <option value="apr">en ucuz önce</option>
                     <option value="newest">en yeni önce</option>
                     <option value="size">en büyük önce</option>
@@ -267,6 +274,13 @@ export default function BorrowPage() {
                 </label>
               }
             />
+
+            {!loaded && (
+              <div className="space-y-4">
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+            )}
 
             {loaded && offers.length === 0 && (
               <EmptyState
@@ -306,8 +320,7 @@ export default function BorrowPage() {
                 const available = BigInt(o.principal_available);
                 const enoughLiquidity =
                   drawRaw > 0n && drawRaw <= available && (drawRaw >= BigInt(o.min_draw) || drawRaw === available);
-                const enoughCollateral =
-                  collateral === "__all__" || collateralBalance === null || collateralBalance >= need;
+                const enoughCollateral = collateral === "__all__" || collateralBalance === null || collateralBalance >= need;
                 const usable = enoughLiquidity && enoughCollateral;
                 const ready = !!prepFor(o);
                 const hasNote =
@@ -328,33 +341,28 @@ export default function BorrowPage() {
                         {o.created_at ? ` · ${timeAgo(o.created_at)}` : ""}
                       </span>
                       <div className="ml-auto flex items-center gap-3">
-                        <span className="num font-display text-[20px] font-semibold text-accent">
-                          {formatApr(o.apr_bps)}
-                        </span>
+                        <span className="num font-display text-[20px] font-bold text-accent">{formatApr(o.apr_bps)}</span>
                         <span className="-ml-2 text-[11px] text-muted">yıllık</span>
                         <Pill>{formatDuration(o.duration_seconds)}</Pill>
                       </div>
                     </div>
 
                     <div className="grid gap-5 px-5 py-5 sm:grid-cols-3">
-                      <Stat label="Kilitleyeceğin teminat">
-                        {fromRaw(need, oDec)}{" "}
-                        <span className="text-[12px] font-medium text-muted">{tokenSymbol(o.collateral_mint)}</span>
+                      <Stat label="Kilitleyeceğin teminat" tone="lock">
+                        {fromRaw(need, oDec)} <span className="text-[12px] font-medium text-muted">{tokenSymbol(o.collateral_mint)}</span>
                       </Stat>
                       <Stat label="Eline geçecek" tone="accent">
                         {fromRaw(received, pDec)} <span className="text-[12px] font-medium text-muted">{sym}</span>
                       </Stat>
                       <Stat
                         label="Geri ödeyeceğin"
-                        hint={`${fromRaw(interest, pDec)} faiz${
-                          config ? ` + ${fromRaw(origination, pDec)} açılış ücreti` : ""
-                        }`}
+                        hint={`${fromRaw(interest, pDec)} faiz${config ? ` + ${fromRaw(origination, pDec)} açılış ücreti` : ""}`}
                       >
                         {fromRaw(repay, pDec)} <span className="text-[12px] font-medium text-muted">{sym}</span>
                       </Stat>
                     </div>
 
-                    <dl className="grid gap-x-6 gap-y-2 border-t border-line bg-page/60 px-5 py-3.5 text-[12px] sm:grid-cols-3">
+                    <dl className="grid gap-x-6 gap-y-2 border-t border-line bg-page/70 px-5 py-3.5 text-[12px] sm:grid-cols-3">
                       <div>
                         <dt className="text-muted">Son ödeme tarihi</dt>
                         <dd className="num mt-0.5 font-medium text-fg">{formatDate(dueAt)}</dd>
@@ -383,13 +391,12 @@ export default function BorrowPage() {
                     {hasNote && (
                       <div className="border-t border-line px-5 py-4">
                         {breakEvenDrop !== undefined && breakEvenDrop > 0 && (
-                          <p className="text-[12px] leading-relaxed text-fg-2">
+                          <p className="text-[12.5px] leading-relaxed text-fg-2">
                             {tokenSymbol(o.collateral_mint)}{" "}
                             <span className="num font-semibold text-fg">
                               %{breakEvenDrop.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}
                             </span>{" "}
-                            düşerse borcun teminatından değerli hale gelir — o noktadan sonra ödememek daha
-                            kârlı olur.
+                            düşerse borcun teminatından değerli hale gelir — o noktadan sonra ödememek daha kârlı olur.
                           </p>
                         )}
                         <FreezeWarning mint={o.collateral_mint} role="collateral" info={mints[o.collateral_mint]} />
@@ -398,7 +405,7 @@ export default function BorrowPage() {
                     )}
 
                     <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-4">
-                      <p className="min-w-[14rem] flex-1 text-[12px] leading-relaxed text-muted">
+                      <p className="min-w-[14rem] flex-1 text-[12.5px] leading-relaxed text-muted">
                         {!enoughLiquidity && drawRaw > available ? (
                           <span className="text-bad">
                             Bu teklifte sadece {fromRaw(available, pDec)} {sym} kaldı. Daha düşük bir tutar dene.
@@ -434,20 +441,15 @@ export default function BorrowPage() {
             </div>
 
             {!publicKey && offers.length > 0 && (
-              <p className="mt-3 text-center text-[12px] text-muted">
-                Teklif kabul etmek için sağ üstten cüzdanını bağla.
-              </p>
+              <p className="mt-3 text-center text-[12px] text-muted">Teklif kabul etmek için cüzdanını bağla.</p>
             )}
-          </section>
-
-          <section>
-            <SectionHeading title="Sık sorulanlar" />
-            <Explainer />
           </section>
         </div>
 
         {/* ------------------------------------------------------ side */}
-        <aside className="space-y-5 lg:sticky lg:top-5">
+        <aside className="space-y-5">
+          <WalletPanel />
+
           <div className="card p-5">
             <p className="eyebrow">Nasıl çalışır</p>
             <h2 className="h2 mt-2">
@@ -455,16 +457,8 @@ export default function BorrowPage() {
               <br />
               <span className="text-accent">Vade dolunca öde.</span>
             </h2>
-            <p className="mt-3 text-[12px] leading-relaxed text-fg-2">
-              Token'ın vade boyunca bir kasada durur; fiyat ne yaparsa yapsın kimse dokunamaz. Vade dolmadan
-              ödersen geri gelir, ödemezsen teklif sahibine geçer — para sende kalır.
-            </p>
             <Timeline />
-          </div>
-
-          <div>
-            <p className="eyebrow mb-3">Her kredide</p>
-            <ul className="space-y-3.5">
+            <ul className="mt-5 space-y-3.5">
               <Feature icon={Icon.clock} title="Sabit vade">
                 Ne zaman ödeyeceğin baştan belli. Erken ödeme serbest, uzatma yok.
               </Feature>
@@ -475,12 +469,12 @@ export default function BorrowPage() {
                 Oracle yok. Riski teklif sahibi bir kez fiyatladı; kartta görüyorsun.
               </Feature>
             </ul>
+            <Link href="/faq" className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accent hover:underline">
+              Sık sorulanlar {Icon.arrow}
+            </Link>
           </div>
 
-          <p className="text-[11px] leading-relaxed text-muted">
-            Dolar değerleri ve LTV yalnızca kıyas içindir; zincirde fiyat yoktur. Vadeyi kaçırırsan teminatın
-            tamamı gider, fazlası iade edilmez.
-          </p>
+          <FeeCard />
         </aside>
       </div>
     </div>
@@ -490,17 +484,17 @@ export default function BorrowPage() {
 /** A loan's life on one line: lock, wait, settle. */
 function Timeline() {
   return (
-    <svg viewBox="0 0 280 64" className="mt-5 w-full" aria-hidden>
-      <line x1="16" y1="32" x2="264" y2="32" stroke="#dbe1e9" strokeWidth="2" />
-      <line x1="16" y1="32" x2="140" y2="32" stroke="#3564dc" strokeWidth="2" />
-      <circle cx="16" cy="32" r="6" fill="#3564dc" />
-      <circle cx="140" cy="32" r="6" fill="#ffffff" stroke="#3564dc" strokeWidth="2" />
-      <circle cx="264" cy="32" r="6" fill="#ffffff" stroke="#dbe1e9" strokeWidth="2" />
-      <text x="16" y="54" fontSize="9" fill="#7b879c" textAnchor="start" fontFamily="inherit">kilit</text>
-      <text x="140" y="54" fontSize="9" fill="#3564dc" textAnchor="middle" fontFamily="inherit" fontWeight="600">bugün</text>
-      <text x="264" y="54" fontSize="9" fill="#7b879c" textAnchor="end" fontFamily="inherit">vade</text>
-      <text x="16" y="18" fontSize="9" fill="#7b879c" textAnchor="start" fontFamily="inherit">nakit cüzdanda</text>
-      <text x="264" y="18" fontSize="9" fill="#7b879c" textAnchor="end" fontFamily="inherit">öde ya da bırak</text>
+    <svg viewBox="0 0 280 60" className="mt-4 w-full" aria-hidden>
+      <line x1="14" y1="30" x2="266" y2="30" stroke="#e6e3db" strokeWidth="2" />
+      <line x1="14" y1="30" x2="140" y2="30" stroke="#0d7a6a" strokeWidth="2" />
+      <circle cx="14" cy="30" r="6" fill="#c77700" />
+      <circle cx="140" cy="30" r="6" fill="#fff" stroke="#0d7a6a" strokeWidth="2" />
+      <circle cx="266" cy="30" r="6" fill="#fff" stroke="#d4d0c6" strokeWidth="2" />
+      <text x="14" y="52" fontSize="9.5" fill="#7a766d" textAnchor="start" fontFamily="inherit">teminat kilitli</text>
+      <text x="140" y="52" fontSize="9.5" fill="#0d7a6a" textAnchor="middle" fontFamily="inherit" fontWeight="700">bugün</text>
+      <text x="266" y="52" fontSize="9.5" fill="#7a766d" textAnchor="end" fontFamily="inherit">vade</text>
+      <text x="14" y="16" fontSize="9.5" fill="#7a766d" textAnchor="start" fontFamily="inherit">nakit cüzdanda</text>
+      <text x="266" y="16" fontSize="9.5" fill="#7a766d" textAnchor="end" fontFamily="inherit">öde ya da bırak</text>
     </svg>
   );
 }

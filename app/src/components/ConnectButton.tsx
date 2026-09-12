@@ -11,15 +11,12 @@ import { PhantomWalletName } from "@solana/wallet-adapter-phantom";
  * MetaMask's Solana snap included — which is noise when the app only expects
  * one. Selecting and connecting directly skips the picker entirely.
  */
-export function ConnectButton() {
+export function ConnectButton({ block = false }: { block?: boolean }) {
   const { publicKey, wallets, select, connect, disconnect, connecting } = useWallet();
   const [error, setError] = useState<string | null>(null);
 
   const phantomReady = useMemo(
-    () =>
-      wallets.some(
-        (w) => w.adapter.name === PhantomWalletName && w.readyState !== "NotDetected"
-      ),
+    () => wallets.some((w) => w.adapter.name === PhantomWalletName && w.readyState !== "NotDetected"),
     [wallets]
   );
 
@@ -47,7 +44,7 @@ export function ConnectButton() {
   if (publicKey) {
     const k = publicKey.toBase58();
     return (
-      <button onClick={onClick} title="Bağlantıyı kes" className="btn-pill num">
+      <button onClick={onClick} title="Bağlantıyı kes" className={`btn-pill num ${block ? "w-full justify-center" : ""}`}>
         <span className="h-1.5 w-1.5 rounded-full bg-good" />
         {k.slice(0, 4)}…{k.slice(-4)}
       </button>
@@ -55,21 +52,24 @@ export function ConnectButton() {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <button onClick={onClick} className="btn-pill">
-        <WalletIcon />
-        {connecting ? "Bağlanıyor…" : phantomReady ? "Cüzdanı bağla" : "Phantom kur"}
+    <div className={`flex flex-col gap-1 ${block ? "" : "items-end"}`}>
+      <button onClick={onClick} className={block ? "btn-block" : "btn-primary py-2"}>
+        <span className="inline-flex items-center gap-2">
+          <WalletIcon />
+          {connecting ? "Bağlanıyor…" : phantomReady ? "Cüzdanı bağla" : "Phantom kur"}
+        </span>
+        {block && <span aria-hidden>→</span>}
       </button>
-      {error && <span className="text-[11px] text-bad">{error}</span>}
+      {error && <span className="text-[11.5px] text-bad">{error}</span>}
     </div>
   );
 }
 
 function WalletIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M10 8h4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M10 8h4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       <circle cx="10.5" cy="8" r="0.9" fill="currentColor" />
     </svg>
   );

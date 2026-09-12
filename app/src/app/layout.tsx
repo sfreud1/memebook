@@ -1,20 +1,19 @@
 import type { Metadata } from "next";
-import { DM_Sans, Manrope } from "next/font/google";
+import { Figtree, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Nav } from "@/components/Nav";
-import { StatusBar } from "@/components/StatusBar";
 import { Footer } from "@/components/Footer";
 
-const sans = DM_Sans({
+const sans = Figtree({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
 });
-const display = Manrope({
+const display = Plus_Jakarta_Sans({
   subsets: ["latin", "latin-ext"],
-  weight: ["600", "700"],
+  weight: ["600", "700", "800"],
   variable: "--font-display",
   display: "swap",
 });
@@ -31,8 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-screen flex-col">
         <Providers>
           <Nav />
-          <StatusBar />
-          <main className="mx-auto w-full max-w-page flex-1 px-5 pb-20 pt-6">{children}</main>
+          <main className="mx-auto w-full max-w-page flex-1 px-5 pb-20 pt-8">{children}</main>
           <Footer />
         </Providers>
       </body>

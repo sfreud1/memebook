@@ -4,45 +4,43 @@
 
 :root { color-scheme: light; }
 
-html { background: #f5f7fa; }
+html { background: #f7f6f2; }
 body {
-  @apply bg-page font-sans text-[13px] text-fg antialiased;
-  font-feature-settings: "tnum", "ss01";
+  @apply bg-page font-sans text-[13.5px] text-fg antialiased;
+  font-feature-settings: "tnum";
 }
-::selection { background: rgba(53, 100, 220, 0.16); }
+::selection { background: rgba(13, 122, 106, 0.18); }
 
 @layer components {
-  .card { @apply rounded-card border border-line bg-card; }
-  .card-pad { @apply card p-5; }
+  .card { @apply rounded-card border border-line bg-card shadow-card; }
 
   .field {
-    @apply h-11 w-full rounded-field border border-line bg-card px-3.5 text-[13px] text-fg outline-none
+    @apply h-11 w-full rounded-field border border-line bg-card px-3.5 text-[13.5px] text-fg outline-none
            transition-colors placeholder:text-muted hover:border-line-strong
            focus:border-accent focus:ring-4 focus:ring-accent/10;
   }
   .field-lg { @apply field h-[52px] text-xl font-semibold; }
-  textarea.field { @apply h-auto py-3; }
-  .label { @apply mb-1.5 block text-[12px] font-medium text-fg; }
-  .label-opt { @apply font-normal text-muted; }
-  .help { @apply mt-1.5 text-[11px] leading-relaxed text-muted; }
-  .eyebrow { @apply text-[10px] font-semibold uppercase tracking-[0.16em] text-muted; }
+  .label { @apply mb-1.5 block text-[12.5px] font-medium text-fg; }
+  .help { @apply mt-1.5 text-[11.5px] leading-relaxed text-muted; }
+  .eyebrow { @apply text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted; }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-btn px-4 py-2.5 text-[13px] font-bold
+    @apply inline-flex items-center justify-center gap-2 rounded-btn px-4 py-2.5 text-[13px] font-semibold
            transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/20
            disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .btn-primary { @apply btn bg-accent text-white shadow-btn hover:bg-accent-hover; }
+  .btn-primary { @apply btn bg-accent text-white hover:bg-accent-hover; }
   .btn-block { @apply btn-primary w-full justify-between px-5 py-3.5; }
+  .btn-secondary { @apply btn border border-line bg-card text-fg hover:border-line-strong hover:bg-page; }
   .btn-pill {
-    @apply inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-[12px] font-semibold
-           text-fg transition-colors hover:border-line-strong hover:bg-page
+    @apply inline-flex items-center gap-2 rounded-full border border-line bg-card px-3.5 py-2 text-[12.5px]
+           font-semibold text-fg transition-colors hover:border-line-strong hover:bg-page
            disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-danger { @apply btn border border-bad/30 bg-card text-bad hover:bg-bad-soft; }
 
-  .tab { @apply rounded-full px-3.5 py-1.5 text-[13px] font-semibold text-fg-2 transition-colors hover:bg-page; }
-  .tab-active { @apply bg-accent-soft text-accent hover:bg-accent-soft; }
+  .tab { @apply rounded-full px-3 py-1.5 text-[13px] font-medium text-fg-2 transition-colors hover:bg-page hover:text-fg; }
+  .tab-active { @apply bg-accent-soft font-semibold text-accent hover:bg-accent-soft hover:text-accent; }
 
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-3 py-1 text-[12px]
@@ -54,12 +52,14 @@ body {
 
   .table { @apply w-full text-[13px]; }
   .table th {
-    @apply px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.16em] text-muted;
+    @apply px-4 py-2.5 text-left text-[10.5px] font-semibold uppercase tracking-[0.14em] text-muted;
   }
   .table td { @apply border-t border-line px-4 py-3 align-middle; }
   .table .r { @apply text-right; }
 
-  .h1 { @apply font-display text-[26px] font-semibold tracking-[-0.8px] text-fg; }
-  .h2 { @apply font-display text-[20px] font-semibold tracking-[-0.5px] text-fg; }
-  .h3 { @apply text-[15px] font-semibold text-fg; }
+  .h1 { @apply font-display text-[28px] font-bold leading-tight tracking-[-0.6px] text-fg; }
+  .h2 { @apply font-display text-[19px] font-bold leading-tight tracking-[-0.3px] text-fg; }
+  .h3 { @apply font-display text-[15px] font-bold text-fg; }
+
+  .skeleton { @apply animate-pulse rounded-md bg-line/70; }
 }

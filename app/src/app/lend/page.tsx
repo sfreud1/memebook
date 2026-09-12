@@ -15,7 +15,8 @@ import { knownTokens, defaultPair, suggestCollateral, tokenSymbol, usdValue } fr
 import { useTokenMarket } from "@/lib/useTokenMarket";
 import { MIN_DURATION_SECONDS } from "@/lib/network";
 import { FreezeWarning } from "@/components/FreezeWarning";
-import { Feature, FeeStrip, Icon, PageTitle, SectionHeading } from "@/components/ui";
+import { WalletPanel } from "@/components/WalletPanel";
+import { Feature, FeeCard, Icon, PageHeader, SectionHeading } from "@/components/ui";
 
 const UNIT_SECONDS: Record<string, number> = { dakika: 60, saat: 3_600, gun: 86_400 };
 
@@ -74,7 +75,7 @@ function TokenPicker({
 function Step({ n, title, sub }: { n: string; title: string; sub: string }) {
   return (
     <div className="mb-4 flex items-baseline gap-3">
-      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">
+      <span className="num flex h-5 w-5 items-center justify-center rounded-full bg-accent-soft text-[10px] font-bold text-accent">
         {n}
       </span>
       <div>
@@ -232,8 +233,10 @@ export default function LendPage() {
 
   return (
     <div className="space-y-5">
-      <FeeStrip />
-      <PageTitle title="Teklif aç." marker="Şartları sen koyarsın" />
+      <PageHeader
+        title="Borç ver"
+        lede="Şartları sen yazarsın: hangi token'a, ne kadar, hangi faizle, ne kadar süre. Biri kabul eder ya da etmez — pazarlık yok."
+      />
 
       {apiError && (
         <div className="rounded-field border border-bad/20 bg-bad-soft px-4 py-3 text-[13px] text-bad">{apiError}</div>
@@ -394,7 +397,8 @@ export default function LendPage() {
         </section>
 
         {/* ------------------------------------------------------ side */}
-        <aside className="space-y-5 lg:sticky lg:top-5">
+        <aside className="space-y-5">
+          <WalletPanel />
           <div className="card p-5">
             <p className="eyebrow">Canlı özet</p>
             <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px]">
@@ -441,6 +445,8 @@ export default function LendPage() {
               )}
             </dl>
           </div>
+
+          <FeeCard />
 
           <div>
             <p className="eyebrow mb-3">Her teklifte</p>

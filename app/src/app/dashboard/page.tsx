@@ -12,7 +12,7 @@ import { useTx } from "@/lib/useTx";
 import { cancelOffer, claimDefault, repayLoan, prepare, type TxPrep } from "@/lib/program";
 import { TokenBadge } from "@/components/TokenBadge";
 import { tokenSymbol, usdValue, formatUsd } from "@/lib/tokens";
-import { EmptyState, Icon, PageTitle, Pill, SectionHeading, Stat } from "@/components/ui";
+import { EmptyState, Icon, PageHeader, Pill, SectionHeading, Stat } from "@/components/ui";
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
@@ -101,7 +101,7 @@ export default function DashboardPage() {
   if (!publicKey) {
     return (
       <div className="space-y-5">
-        <PageTitle title="Panelim." />
+        <PageHeader title="Panelim" lede="Aldığın borçlar, verdiklerin ve açık ilanların — geri sayımlarıyla." />
         <EmptyState
           title="Cüzdanını bağla."
           body="Aldığın borçlar, verdiklerin ve açık ilanların burada görünür. Sağ üstten Phantom'a bağlan."
@@ -123,7 +123,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <PageTitle title="Panelim." marker={shortKey(publicKey.toBase58())} />
+      <PageHeader
+        title="Panelim"
+        lede="Aldığın borçlar, verdiklerin ve açık ilanların — geri sayımlarıyla."
+        right={<span className="num text-[12px] text-muted">{shortKey(publicKey.toBase58())}</span>}
+      />
 
       <div className="card grid grid-cols-3 divide-x divide-line">
         <div className="px-5 py-4">
@@ -183,7 +187,7 @@ export default function DashboardPage() {
                   >
                     {fromRaw(due, pDec)} <span className="text-[12px] font-medium text-muted">{tokenSymbol(l.principal_mint)}</span>
                   </Stat>
-                  <Stat label="Kilitli teminatın" hint={collUsd !== undefined ? formatUsd(collUsd) : undefined}>
+                  <Stat label="Kilitli teminatın" tone="lock" hint={collUsd !== undefined ? formatUsd(collUsd) : undefined}>
                     {fromRaw(l.collateral_amount, cDec)}{" "}
                     <span className="text-[12px] font-medium text-muted">{tokenSymbol(l.collateral_mint)}</span>
                   </Stat>
