@@ -18,6 +18,8 @@ import { homedir } from "node:os";
 
 const RPC = process.env.RPC_URL ?? "http://127.0.0.1:8899";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Public RPCs rate-limit per call; slow the loop down rather than fail it. */
+const PAUSE = Number(process.env.PAUSE_MS ?? (RPC.includes("127.0.0.1") ? 300 : 1_500));
 
 const registry: Record<string, { symbol: string; usd?: number }> = JSON.parse(
   readFileSync(new URL("../app/src/lib/token-registry.json", import.meta.url), "utf8")
@@ -29,15 +31,16 @@ function amountFor(usd: number | undefined): number {
   return Math.max(1, Math.round(5_000 / usd));
 }
 
-async function retry<T>(label: string, fn: () => Promise<T>, attempts = 6): Promise<T> {
-  let delay = 600;
+async function retry<T>(label: string, fn: () => Promise<T>, attempts = 10): Promise<T> {
+  let delay = 1_000;
   for (let i = 0; ; i++) {
     try {
       return await fn();
     } catch (e) {
       if (i >= attempts - 1) throw e;
+      console.log(`  ${label}: retry ${i + 1}/${attempts - 1}`);
       await sleep(delay);
-      delay = Math.min(delay * 2, 8_000);
+      delay = Math.min(delay * 2, 15_000);
     }
   }
 }
@@ -46,7 +49,13 @@ async function main() {
   const targets = process.argv.slice(2);
   if (targets.length === 0) throw new Error("usage: fund.ts <wallet-address> …");
 
-  const connection = new Connection(RPC, "confirmed");
+  // A public devnet RPC throttles hard and its websocket drops under 429s, so
+  // confirmations poll over HTTP and get a long window to land.
+  const connection = new Connection(RPC, {
+    commitment: "confirmed",
+    confirmTransactionInitialTimeout: 120_000,
+    disableRetryOnRateLimit: false,
+  });
   const payer = Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(readFileSync(`${homedir()}/.config/solana/id.json`, "utf8")))
   );
@@ -106,7 +115,7 @@ async function main() {
           BigInt(Math.round(whole * 10 ** info.decimals)), [], undefined, TOKEN_PROGRAM_ID)
       );
       console.log(`  ${meta.symbol.padEnd(6)} ${whole.toLocaleString("tr-TR")}`);
-      await sleep(300);
+      await sleep(PAUSE);
     }
   }
 }
