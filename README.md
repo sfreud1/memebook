@@ -18,11 +18,15 @@ mark them to market. Risk is priced once, by a human, when the offer is written.
 ## Layout
 
 ```
-programs/memebook/   Anchor program — the only authoritative state
-indexer/             Event stream -> Postgres projection + read API
-app/                 Next.js frontend
-scripts/seed.ts      Populates a local validator with a demo book
-run-tests.sh         Fresh ledger, build, deploy, full suite
+programs/memebook/         Anchor program — the only authoritative state
+indexer/                   Event stream -> Postgres projection + read API
+app/                       Next.js frontend
+scripts/seed.ts            Populates a local validator with a demo book
+scripts/init-config.ts     First-time config on a fresh deployment (admin = multisig vault)
+scripts/migrate-config.ts  Rewrite an old-layout Config in place (upgrade authority only)
+scripts/transfer-admin.ts  Hand Config.admin to a Squads vault, in two steps
+scripts/post-offer.ts      Post or cancel one offer from the CLI wallet, to see the book render
+run-tests.sh               Fresh ledger, build, deploy, full suite
 ```
 
 ## Why an indexer sits in the middle

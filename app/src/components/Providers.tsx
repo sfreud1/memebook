@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
+import { ToastProvider } from "@/components/Toaster";
 
 const RPC = process.env.NEXT_PUBLIC_RPC_URL ?? "http://127.0.0.1:8899";
 
@@ -14,7 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ConnectionProvider endpoint={RPC} config={{ commitment: "confirmed" }}>
       <WalletProvider wallets={wallets} autoConnect>
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

@@ -4,22 +4,50 @@
 
 :root { color-scheme: dark; }
 
+html { background: #0e0f12; }
 body {
-  @apply bg-ink text-neutral-100 antialiased;
-  font-feature-settings: "tnum";
+  @apply bg-ink font-sans text-fg antialiased;
 }
+::selection { background: rgba(244, 195, 90, 0.3); }
 
 @layer components {
-  .panel { @apply bg-panel border border-edge rounded-xl; }
+  .panel { @apply rounded-2xl border border-edge bg-panel; }
+  .panel-raised { @apply rounded-2xl border border-edge-strong bg-raised; }
+
   .field {
-    @apply w-full bg-ink border border-edge rounded-lg px-3 py-2 text-sm
-           outline-none focus:border-accent/60 transition-colors;
+    @apply w-full rounded-xl border border-edge bg-ink px-3.5 py-2.5 text-sm text-fg outline-none
+           transition-colors placeholder:text-muted/70 hover:border-edge-strong
+           focus:border-accent/70 focus:ring-2 focus:ring-accent/15;
   }
-  .label { @apply block text-xs uppercase tracking-wide text-muted mb-1.5; }
+  .field-lg { @apply field py-3 font-mono text-2xl font-medium tabular-nums; }
+  .label {
+    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
+  }
+  .help { @apply mt-1.5 text-xs leading-relaxed text-muted; }
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted; }
+
   .btn {
-    @apply rounded-lg px-4 py-2 text-sm font-semibold transition-colors
-           disabled:opacity-40 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+           transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50
+           disabled:cursor-not-allowed disabled:opacity-40;
   }
-  .btn-primary { @apply btn bg-accent text-ink hover:bg-accent/80; }
-  .btn-ghost   { @apply btn border border-edge text-neutral-200 hover:border-muted; }
+  .btn-primary { @apply btn bg-accent text-accent-ink hover:brightness-110 active:brightness-95; }
+  .btn-ghost { @apply btn border border-edge-strong bg-transparent text-fg hover:border-muted hover:bg-raised; }
+  .btn-danger { @apply btn border border-bad/40 bg-transparent text-bad hover:bg-bad/10; }
+  .btn-sm { @apply px-3 py-1.5 text-xs; }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-edge px-2.5 py-1 text-xs
+           text-fg-2 transition-colors hover:border-edge-strong hover:text-fg;
+  }
+  .chip-active { @apply border-accent/60 bg-accent/10 text-accent hover:border-accent/60 hover:text-accent; }
+
+  .num { @apply font-mono tabular-nums; }
+
+  .table { @apply w-full text-sm; }
+  .table th {
+    @apply px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+  .table td { @apply border-t border-edge px-4 py-3 align-middle; }
+  .table .r { @apply text-right; }
 }

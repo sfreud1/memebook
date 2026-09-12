@@ -55,26 +55,36 @@ Kart üzerindeki "Toplam maliyet" satırı ikisinin toplamı. Sürpriz kesinti y
 ];
 
 export function Explainer() {
-  const [open, setOpen] = useState<number | null>(null);
+  const [open, setOpen] = useState<number | null>(0);
 
   return (
     <section className="panel divide-y divide-edge">
-      {ITEMS.map((item, i) => (
-        <div key={item.q}>
-          <button
-            onClick={() => setOpen(open === i ? null : i)}
-            className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left"
-          >
-            <span className="text-sm font-medium">{item.q}</span>
-            <span className="shrink-0 text-muted">{open === i ? "−" : "+"}</span>
-          </button>
-          {open === i && (
-            <div className="whitespace-pre-line px-5 pb-4 text-sm leading-relaxed text-muted">
-              {item.a}
-            </div>
-          )}
-        </div>
-      ))}
+      {ITEMS.map((item, i) => {
+        const isOpen = open === i;
+        return (
+          <div key={item.q}>
+            <button
+              onClick={() => setOpen(isOpen ? null : i)}
+              aria-expanded={isOpen}
+              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+            >
+              <span className="text-[15px] font-medium">{item.q}</span>
+              <span
+                className={`shrink-0 text-lg leading-none text-muted transition-transform ${
+                  isOpen ? "rotate-45 text-accent" : ""
+                }`}
+              >
+                +
+              </span>
+            </button>
+            {isOpen && (
+              <div className="whitespace-pre-line px-5 pb-5 text-sm leading-relaxed text-fg-2">
+                {item.a}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </section>
   );
 }

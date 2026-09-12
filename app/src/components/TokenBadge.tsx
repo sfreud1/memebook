@@ -27,7 +27,7 @@ export function TokenBadge({
         />
       ) : (
         <span
-          className={`${SIZES[size]} shrink-0 rounded-full bg-edge text-[9px] leading-none flex items-center justify-center text-muted`}
+          className={`${SIZES[size]} flex shrink-0 items-center justify-center rounded-full bg-edge text-[9px] font-semibold leading-none text-muted`}
         >
           {meta.symbol.slice(0, 1)}
         </span>

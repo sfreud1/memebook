@@ -104,6 +104,32 @@ export function knownTokens(): Array<TokenMeta & { mint: string }> {
 export function defaultPair(): { principal?: string; collateral?: string } {
   const all = knownTokens();
   const stable = all.find((t) => /^t?USD/i.test(t.symbol));
-  const other = all.find((t) => t.mint !== stable?.mint);
+  const others = all.filter((t) => t.mint !== stable?.mint);
+  // A sub-dollar token is the memecoin-like one, and that is what the book
+  // exists for; a blue chip is the fallback when nothing else is listed.
+  const other = others.find((t) => typeof t.usd === "number" && t.usd < 1) ?? others[0];
   return { principal: stable?.mint, collateral: other?.mint };
+}
+
+/** A lender's usual starting point: collateral worth about three times the principal. */
+export const DEFAULT_LTV = 0.35;
+
+/**
+ * How much of `collateralMint` covers `principalAmount` of `principalMint` at
+ * the default LTV, from reference prices. Undefined when either is unpriced —
+ * then the form leaves whatever the lender typed alone.
+ */
+export function suggestCollateral(
+  principalMint: string | undefined,
+  principalAmount: number,
+  collateralMint: string | undefined
+): number | undefined {
+  const p = tokenPrice(principalMint);
+  const c = tokenPrice(collateralMint);
+  if (!p || !c || !(principalAmount > 0)) return undefined;
+  const usd = (principalAmount * p) / DEFAULT_LTV;
+  const amount = usd / c;
+  // Round to something a person would type.
+  const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(amount)) - 2);
+  return Math.round(amount / magnitude) * magnitude;
 }

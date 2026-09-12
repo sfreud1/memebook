@@ -44,24 +44,26 @@ export function ConnectButton() {
     }
   }, [publicKey, phantomReady, select, connect, disconnect]);
 
-  const label = publicKey
-    ? `${publicKey.toBase58().slice(0, 4)}..${publicKey.toBase58().slice(-4)}`
-    : connecting
-      ? "Bağlanıyor…"
-      : phantomReady
-        ? "Phantom'a Bağlan"
-        : "Phantom Kur";
+  if (publicKey) {
+    const k = publicKey.toBase58();
+    return (
+      <button
+        onClick={onClick}
+        title="Bağlantıyı kes"
+        className="btn-ghost btn-sm gap-2 font-mono text-xs"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-good" />
+        {k.slice(0, 4)}…{k.slice(-4)}
+      </button>
+    );
+  }
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button
-        onClick={onClick}
-        title={publicKey ? "Bağlantıyı kes" : undefined}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-accent/80"
-      >
-        {label}
+      <button onClick={onClick} className="btn-primary btn-sm">
+        {connecting ? "Bağlanıyor…" : phantomReady ? "Phantom'a bağlan" : "Phantom kur"}
       </button>
-      {error && <span className="text-xs text-red-300">{error}</span>}
+      {error && <span className="text-xs text-bad">{error}</span>}
     </div>
   );
 }
