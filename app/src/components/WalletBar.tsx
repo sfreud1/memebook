@@ -5,19 +5,13 @@ import { useWalletBalances } from "@/lib/useWalletBalances";
 import { TokenBadge } from "@/components/TokenBadge";
 import { fromRaw } from "@/lib/format";
 import { tokenMeta } from "@/lib/tokens";
-
-const RPC = process.env.NEXT_PUBLIC_RPC_URL ?? "";
-const NETWORK = RPC.includes("devnet")
-  ? "Devnet"
-  : RPC.includes("127.0.0.1") || RPC.includes("localhost")
-    ? "Localnet"
-    : RPC.includes("testnet")
-      ? "Testnet"
-      : "Mainnet";
+import { useTokenMarket } from "@/lib/useTokenMarket";
+import { IS_MAINNET, NETWORK, NETWORK_LABEL } from "@/lib/network";
 
 export function WalletBar() {
   const { publicKey } = useWallet();
   const { sol, tokens } = useWalletBalances();
+  useTokenMarket(tokens.map((t) => t.mint));
 
   if (!publicKey) return null;
 
@@ -59,10 +53,10 @@ export function WalletBar() {
         <span className="ml-auto flex items-center gap-1.5 text-xs text-muted">
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              NETWORK === "Mainnet" ? "bg-red-400" : "bg-accent"
+              IS_MAINNET ? "bg-red-400" : "bg-accent"
             }`}
           />
-          {NETWORK}
+          {NETWORK_LABEL[NETWORK]}
         </span>
       </div>
     </div>

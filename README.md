@@ -122,8 +122,12 @@ emits sBPF v3, which the upgradeable loader rejects. `run-tests.sh` therefore
 drives `solana-test-validator` directly and builds with `--arch v0`. Deploying
 the v3 binary instead requires `solana program-v4 deploy`.
 
-`MIN_DURATION_SECONDS` is 60 — a sanity floor only. Real terms are set by
-lenders per offer.
+The shortest term a lender may offer is an hour. Test clusters build with
+`--features short-terms`, which lowers it to a minute so the maturity and
+default paths can be exercised without waiting; `run-tests.sh` and the
+fuzzing instructions do that for you. **Never enable it for mainnet.** The
+frontend mirrors the floor: it follows the network (an hour on mainnet, a
+minute elsewhere) unless `NEXT_PUBLIC_MIN_DURATION_SECONDS` says otherwise.
 
 ## Tests
 
@@ -169,7 +173,7 @@ up), settling somebody else's position, and claiming an already-claimed loan.
 ## Fuzzing
 
 ```bash
-cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0
+cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0 --features short-terms
 cd trident-tests && trident fuzz run fuzz_0
 ```
 
@@ -245,6 +249,50 @@ treat their layouts as frozen.
 After a layout-changing deploy, start the indexer with `START_SLOT=<deploy
 slot>` on a fresh database so positions the program can no longer read stay
 out of the book.
+
+## Mainnet runbook
+
+In this order. Every step is one command or one screen; the point of the
+list is the order.
+
+1. **Keys, on a clean machine.** A fresh deploy keypair
+   (`solana-keygen new -o ~/.config/solana/mainnet-deploy.json`) that is never
+   pasted anywhere. A Squads v4 multisig at app.squads.so whose members are on
+   different devices — a hardware wallet or a second person, not two accounts
+   in one Phantom. The multisig's vault is both the future upgrade authority
+   and `Config.admin`; a treasury address for fees (the vault works).
+2. **Build the mainnet binary.** `anchor build` for the IDL, then
+   `cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0`
+   — *without* `short-terms`. Copy `target/idl/memebook.json` and
+   `target/types/memebook.ts` into `app/src/lib/` as usual.
+3. **Deploy.** `solana program deploy target/deploy/memebook.so --program-id
+   target/deploy/memebook-keypair.json -u mainnet-beta -k <deploy key>`.
+   The program is ~520 KB: about 2.6 SOL stays locked as rent, and the same
+   again passes through a buffer and comes back, so start with 6 SOL there.
+4. **Initialise, admin = the vault.** `scripts/init-config.ts <vault>
+   <treasury>` signed by the deploy key (it is still the upgrade authority,
+   which `initialize_config` requires). Naming the vault as admin here means
+   no admin handover afterwards.
+5. **Hand over the program.** `solana program set-upgrade-authority
+   <program> --new-upgrade-authority <vault>
+   --skip-new-upgrade-authority-signer-check`. From here every upgrade and
+   every admin instruction is a Squads transaction.
+6. **Frontend.** `NEXT_PUBLIC_RPC_URL` = a paid RPC (Helius, Triton,
+   QuickNode — the public endpoint rate-limits the indexer into the ground),
+   `NEXT_PUBLIC_API_URL` = the indexer. Curate
+   `app/src/lib/token-registry.mainnet.json`: it ships with USDC and SOL;
+   add a memecoin only after looking at its mint — freeze authority,
+   Token-2022 extensions, real liquidity. Names and prices for anything not
+   in the list come from Jupiter's free token and price endpoints, polled
+   every minute, display-only.
+7. **Indexer.** `RPC_URL`, `DATABASE_URL` (Postgres), `PORT`,
+   `CORS_ORIGIN=https://<your domain>`.
+8. **Verify the bytes.** A verifiable build (`solana-verify build` and
+   `verify-from-repo`) lets anyone confirm the deployed program is this
+   repository. Recommended before announcing.
+9. **Before real money.** Watch `FeesUpdated`, `PausedUpdated`,
+   `AdminTransferred` events; decide who can trigger `set_paused` at 3 a.m.
+   and how; a bug bounty; a lawyer for the jurisdiction the operator is in.
 
 ## Status
 

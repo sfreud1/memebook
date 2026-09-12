@@ -25,8 +25,8 @@ if [[ -z "${SKIP_BUILD:-}" ]]; then
   echo "==> generating IDL + types"
   anchor build >/dev/null 2>&1
 
-  echo "==> building sBPF v0 binary"
-  cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0 >/dev/null 2>&1
+  echo "==> building sBPF v0 binary (short-terms: one-minute floor for the maturity tests)"
+  cargo build-sbf --manifest-path programs/memebook/Cargo.toml --arch v0 --features short-terms >/dev/null 2>&1
 else
   echo "==> SKIP_BUILD set, reusing target/deploy/memebook.so"
 fi

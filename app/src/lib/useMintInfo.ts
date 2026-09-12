@@ -8,6 +8,12 @@ import { PublicKey } from "@solana/web3.js";
 export interface MintInfo {
   decimals: number;
   tokenProgram: PublicKey;
+  /**
+   * Whoever holds this can freeze any token account of the mint, the escrow
+   * vaults included. The program lets such mints through — refusing them
+   * would refuse most memecoins — so the UI has to say it out loud instead.
+   */
+  freezeAuthority: string | null;
 }
 
 const cache = new Map<string, MintInfo>();
@@ -38,9 +44,13 @@ export function useMintInfo(mints: (string | undefined)[]) {
               ? TOKEN_2022_PROGRAM_ID
               : TOKEN_PROGRAM_ID;
             const mint = await getMint(connection, pk, "confirmed", program);
-            cache.set(m, { decimals: mint.decimals, tokenProgram: program });
+            cache.set(m, {
+              decimals: mint.decimals,
+              tokenProgram: program,
+              freezeAuthority: mint.freezeAuthority?.toBase58() ?? null,
+            });
           } catch {
-            cache.set(m, { decimals: 0, tokenProgram: TOKEN_PROGRAM_ID });
+            cache.set(m, { decimals: 0, tokenProgram: TOKEN_PROGRAM_ID, freezeAuthority: null });
           }
         })
       );

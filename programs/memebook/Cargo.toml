@@ -15,6 +15,8 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+# One-minute minimum term for test clusters. Never enable for mainnet.
+short-terms = []
 
 [dependencies]
 anchor-lang = { version = "1.2.0", features = ["init-if-needed"] }

@@ -12,6 +12,7 @@ import {
   timeLeft,
 } from "@/lib/format";
 import { useMintInfo } from "@/lib/useMintInfo";
+import { useTokenMarket } from "@/lib/useTokenMarket";
 import { useProgram } from "@/lib/useProgram";
 import { cancelOffer, claimDefault, repayLoan, prepare, type TxPrep } from "@/lib/program";
 import { PublicKey } from "@solana/web3.js";
@@ -55,6 +56,11 @@ export default function DashboardPage() {
   }, []);
 
   const mints = useMintInfo([
+    ...borrowed.flatMap((l) => [l.principal_mint, l.collateral_mint]),
+    ...lent.flatMap((l) => [l.principal_mint, l.collateral_mint]),
+    ...offers.flatMap((o) => [o.principal_mint, o.collateral_mint]),
+  ]);
+  useTokenMarket([
     ...borrowed.flatMap((l) => [l.principal_mint, l.collateral_mint]),
     ...lent.flatMap((l) => [l.principal_mint, l.collateral_mint]),
     ...offers.flatMap((o) => [o.principal_mint, o.collateral_mint]),

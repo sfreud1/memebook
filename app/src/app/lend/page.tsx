@@ -10,6 +10,9 @@ import { useProgram } from "@/lib/useProgram";
 import { createOffer } from "@/lib/program";
 import { TokenBadge } from "@/components/TokenBadge";
 import { knownTokens, defaultPair, tokenSymbol, tokenPrice } from "@/lib/tokens";
+import { useTokenMarket } from "@/lib/useTokenMarket";
+import { MIN_DURATION_SECONDS } from "@/lib/network";
+import { FreezeWarning } from "@/components/FreezeWarning";
 
 const UNIT_SECONDS: Record<string, number> = {
   dakika: 60,
@@ -92,7 +95,12 @@ export default function LendPage() {
 
   const durationSeconds = toSeconds(form.duration, form.durationUnit);
   // Mirrors the program's own bounds so the form refuses what the chain would.
-  const durationValid = durationSeconds >= 60 && durationSeconds <= 365 * 86_400;
+  const durationValid =
+    durationSeconds >= MIN_DURATION_SECONDS && durationSeconds <= 365 * 86_400;
+  // A one-minute term only exists on test clusters; do not offer the unit
+  // where the program would refuse every value of it.
+  const minuteTerms = MIN_DURATION_SECONDS < 3_600;
+  useTokenMarket([principalPick, collateralPick]);
 
   async function onCreate() {
     if (!program || !publicKey) return;
@@ -322,7 +330,7 @@ export default function LendPage() {
                 value={form.durationUnit}
                 onChange={setUnit("durationUnit")}
               >
-                <option value="dakika">dakika</option>
+                {minuteTerms && <option value="dakika">dakika</option>}
                 <option value="saat">saat</option>
                 <option value="gun">gün</option>
               </select>
@@ -330,7 +338,7 @@ export default function LendPage() {
             <p className={`mt-1.5 text-xs ${durationValid ? "text-muted" : "text-red-300"}`}>
               {durationValid
                 ? "Paran bu süre boyunca kilitli kalır, erken çıkamazsın."
-                : "Vade en az 1 dakika, en çok 365 gün olabilir."}
+                : `Vade en az ${formatDuration(MIN_DURATION_SECONDS)}, en çok 365 gün olabilir.`}
             </p>
           </div>
 
@@ -389,6 +397,8 @@ export default function LendPage() {
               İki kutuyu karıştırmış olabilir misin?
             </p>
           )}
+          <FreezeWarning mint={collateralPick} role="collateral" info={mints[collateralPick]} />
+          <FreezeWarning mint={principalPick} role="principal" info={mints[principalPick]} />
         </div>
 
         <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">

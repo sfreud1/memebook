@@ -282,11 +282,11 @@
     <div class="tile" style="--tile-accent: var(--sev-medium)"><div class="n">5</div><div class="l">Orta</div><div class="s">5 düzeltildi</div></div>
     <div class="tile" style="--tile-accent: var(--sev-low)"><div class="n">3</div><div class="l">Düşük</div><div class="s">3 düzeltildi</div></div>
     <div class="tile" style="--tile-accent: var(--sev-info)"><div class="n">1</div><div class="l">Bilgi</div><div class="s">1 düzeltildi</div></div>
-    <div class="tile" style="--tile-accent: var(--st-accepted-ink)"><div class="n">7</div><div class="l">Belgelenmiş risk</div><div class="s">3'ü mainnet öncesi iş</div></div>
+    <div class="tile" style="--tile-accent: var(--st-accepted-ink)"><div class="n">7</div><div class="l">Belgelenmiş risk</div><div class="s">3'ü sonradan kapatıldı</div></div>
   </div>
 
   <div class="callout">
-    <p><strong>Açık kalan program bulgusu yok.</strong> On iki bulgunun on ikisi kodda kapatıldı; her biri test veya fuzz ile doğrulandı. Açık kalanlar programın dışında: multisig, sabit değerlerin mainnet ayarı ve devnet'in yeniden deploy'u.</p>
+    <p><strong>Açık kalan program bulgusu yok.</strong> On iki bulgunun on ikisi kodda kapatıldı; her biri test veya fuzz ile doğrulandı. Belgelenmiş risklerden de üçü sonradan kapatıldı (vade tabanı, dondurma uyarısı, devnet multisig provası). Mainnet'te hâlâ yapılacak tek güvenlik işi: multisig'i v4 ve ayrı cihazdaki ikinci anahtarla yeniden kurmak.</p>
   </div>
 
   <!-- ================================================================ -->
@@ -534,9 +534,9 @@
   <article class="risk">
     <div class="id">R-02</div>
     <div>
-      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-open">Açık · arayüz işi</span>
+      <div class="head"><span class="chip sev sev-medium">Orta</span><span class="chip st-fixed">Arayüzde kapatıldı</span>
         <h3>Klasik SPL <code>freeze_authority</code></h3></div>
-      <p>Token-2022 dışında, klasik bir mint'in dondurma yetkisi kasayı dondurabilir; o anda geri ödeme de temerrüt talebi de çalışmaz. Programda engellemek, dondurma yetkisi olan her mint'i reddetmek demek — memecoin'lerin büyük kısmı elenir. Karar: programda serbest, arayüzde teklif kartında görünür uyarı ("bu token'ın dondurma yetkisi var").</p>
+      <p>Token-2022 dışında, klasik bir mint'in dondurma yetkisi kasayı dondurabilir; o anda geri ödeme de temerrüt talebi de çalışmaz. Programda engellemek, dondurma yetkisi olan her mint'i reddetmek demek — memecoin'lerin büyük kısmı elenir. Karar: programda serbest, arayüzde uyarı. <strong>12 Eylül:</strong> arayüz her mint'in dondurma yetkisini zincirden okuyor; yetki duruyorsa teklif kartında ve ilan açma özetinde kehribar uyarı gösteriyor (<code>FreezeWarning</code>), devnet'te dondurma yetkili bir test mint'iyle doğrulandı. Program tarafında değişiklik yok — risk kalıyor, artık görünür.</p>
     </div>
   </article>
 
@@ -552,9 +552,9 @@
   <article class="risk">
     <div class="id">R-04</div>
     <div>
-      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-open">Açık · sabit değişikliği</span>
+      <div class="head"><span class="chip sev sev-low">Düşük</span><span class="chip st-fixed">Kapatıldı</span>
         <h3><code>MIN_DURATION_SECONDS = 60</code></h3></div>
-      <p>Dakikalık vade devnet'te temerrüt yolunu hızlı denemek için kondu. Cluster saati birkaç saniye kayabilir; bir dakikalık kredide bu, vadenin anlamlı bir yüzdesidir. Mainnet için taban en az bir saat olmalı — tek satırlık sabit değişikliği, düzen etkilemez.</p>
+      <p>Dakikalık vade devnet'te temerrüt yolunu hızlı denemek için kondu. Cluster saati birkaç saniye kayabilir; bir dakikalık kredide bu, vadenin anlamlı bir yüzdesidir. <strong>12 Eylül:</strong> varsayılan derleme tabanı <strong>1 saat</strong>; bir dakikalık taban yalnızca <code>short-terms</code> cargo özelliğiyle derlenen test sürümlerinde var (<code>run-tests.sh</code> ve fuzz bunu kullanır). Mainnet derlemesi özelliksizdir; arayüz de tabanı ağa göre yansıtır ve dakika birimini mainnet'te sunmaz.</p>
     </div>
   </article>
 
@@ -622,10 +622,10 @@
   <p class="prose">Sırayla. İlk üçü yapılmadan gerçek para konulmamalı.</p>
   <ol class="steps">
     <li><div><b>Squads multisig (mainnet'te v4 ile yeniden)</b><small>Upgrade authority ve <code>Config.admin</code> aynı multisig'e; ikinci anahtar aynı cihazda olmasın. Devnet provası yapıldı (R-01).</small></div></li>
-    <li><div><b>Sabitleri mainnet'e ayarla</b><small><code>MIN_DURATION_SECONDS</code> ≥ 3 600 (R-04). Düzen değişmiyor, yalnızca kural.</small></div></li>
+    <li><div><b>Mainnet derlemesi = özelliksiz derleme</b><small><code>MIN_DURATION_SECONDS</code> varsayılan 3 600; <code>--features short-terms</code> yalnızca test kümeleri için (R-04). Yapıldı.</small></div></li>
     <li><div><b>Düzeni dondur</b><small>Bu commit'ten sonra <code>Config</code>/<code>Offer</code>/<code>Loan</code>'a alan eklenmez; gerekirse migration instruction'ı ile (R-03).</small></div></li>
     <li><div><b>Devnet'i yeniden deploy et ve tam turu koş</b><small>Yeni düzen için ~2,2 SOL gerekiyor; cüzdanda 1,35 var. Eski hesaplar atıl, <code>scripts/reset.ts</code> ile temiz defter kurulur. Teklif → çekim → ödeme → temerrüt → talep, gerçek cüzdanlarla.</small></div></li>
-    <li><div><b>Arayüz uyarıları</b><small>Dondurma yetkisi olan mint'ler için kart üzerinde uyarı (R-02).</small></div></li>
+    <li><div><b>Arayüz uyarıları</b><small>Dondurma yetkisi olan mint'ler için kart ve özet üzerinde uyarı (R-02). Yapıldı; mainnet token listesi (<code>token-registry.mainnet.json</code>) operatör tarafından küratörlenecek.</small></div></li>
     <li><div><b>Projeyi iCloud'dan çıkar</b><small>Desktop eşitlemesi derlemeyi üç kez bozdu; <code>~/code/memebook</code> gibi eşitlenmeyen bir yere.</small></div></li>
     <li><div><b>Altyapı</b><small>Ücretli RPC (Helius/Triton), indexer için Postgres ve Geyser/webhook kaynağı, frontend için Vercel.</small></div></li>
     <li><div><b>Gece fuzz koşusu + bug bounty</b><small>CI'da <code>FUZZ_ITERATIONS=50000</code>; açılışta Immunefi.</small></div></li>

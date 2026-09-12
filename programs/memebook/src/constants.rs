@@ -15,8 +15,17 @@ pub const LOAN_VAULT_SEED: &[u8] = b"loan_vault";
 pub const SECONDS_PER_YEAR: u128 = 31_536_000;
 pub const BPS_DENOMINATOR: u128 = 10_000;
 
-pub const MIN_DURATION_SECONDS: u32 = 60; // 1 minute — a sanity floor only;
-// real terms are set by lenders per-offer.
+/// Shortest term a lender may offer.
+///
+/// An hour. Cluster time drifts by seconds, and on a term measured in minutes
+/// that drift is a meaningful share of the loan. Test clusters keep a
+/// one-minute floor behind the `short-terms` feature so the maturity and
+/// default paths can be exercised without waiting an hour; the mainnet build
+/// is the default one.
+#[cfg(not(feature = "short-terms"))]
+pub const MIN_DURATION_SECONDS: u32 = 60 * 60;
+#[cfg(feature = "short-terms")]
+pub const MIN_DURATION_SECONDS: u32 = 60;
 pub const MAX_DURATION_SECONDS: u32 = 60 * 60 * 24 * 365; // 365 days
 
 /// 1000% APR. Long-tail lenders genuinely quote triple digits; four is a fat finger.

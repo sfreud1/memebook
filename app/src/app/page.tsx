@@ -16,6 +16,8 @@ import {
   toRaw,
 } from "@/lib/format";
 import { useMintInfo } from "@/lib/useMintInfo";
+import { useTokenMarket } from "@/lib/useTokenMarket";
+import { FreezeWarning } from "@/components/FreezeWarning";
 import { useProgram } from "@/lib/useProgram";
 import { useConfig } from "@/lib/useConfig";
 import { useTokenBalance } from "@/lib/useTokenBalance";
@@ -87,6 +89,11 @@ export default function BorrowPage() {
   }, [collateral, maxDuration, sort, tick, busy]);
 
   const mints = useMintInfo([
+    collateral,
+    ...offers.map((o) => o.principal_mint),
+    ...offers.map((o) => o.collateral_mint),
+  ]);
+  useTokenMarket([
     collateral,
     ...offers.map((o) => o.principal_mint),
     ...offers.map((o) => o.collateral_mint),
@@ -424,6 +431,9 @@ export default function BorrowPage() {
                   sonra ödememek daha kârlı olur.
                 </p>
               )}
+
+              <FreezeWarning mint={o.collateral_mint} role="collateral" info={mints[o.collateral_mint]} />
+              <FreezeWarning mint={o.principal_mint} role="principal" info={mints[o.principal_mint]} />
 
               <div className="mt-4 flex items-center gap-4 border-t border-edge pt-4">
                 <p className="flex-1 text-xs leading-relaxed text-muted">
