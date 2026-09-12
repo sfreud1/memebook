@@ -4,31 +4,20 @@ import { useEffect, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { fetchMarkets, type Market } from "@/lib/api";
-import {
-  feeOf,
-  formatApr,
-  formatDuration,
-  fromRaw,
-  interestFor,
-  toRaw,
-} from "@/lib/format";
+import { feeOf, formatApr, formatDuration, fromRaw, interestFor, toRaw } from "@/lib/format";
 import { useMintInfo } from "@/lib/useMintInfo";
 import { useProgram } from "@/lib/useProgram";
 import { useConfig } from "@/lib/useConfig";
 import { useTx } from "@/lib/useTx";
 import { createOffer } from "@/lib/program";
 import { TokenBadge } from "@/components/TokenBadge";
-import { knownTokens, defaultPair, suggestCollateral, tokenSymbol, usdValue, formatUsd } from "@/lib/tokens";
+import { knownTokens, defaultPair, suggestCollateral, tokenSymbol, usdValue } from "@/lib/tokens";
 import { useTokenMarket } from "@/lib/useTokenMarket";
 import { MIN_DURATION_SECONDS } from "@/lib/network";
 import { FreezeWarning } from "@/components/FreezeWarning";
-import { SectionHeading } from "@/components/ui";
+import { Feature, FeeStrip, Icon, PageTitle, SectionHeading } from "@/components/ui";
 
-const UNIT_SECONDS: Record<string, number> = {
-  dakika: 60,
-  saat: 3_600,
-  gun: 86_400,
-};
+const UNIT_SECONDS: Record<string, number> = { dakika: 60, saat: 3_600, gun: 86_400 };
 
 /** The program thinks in seconds; the form lets a lender think in whatever
  *  unit suits the loan they have in mind. */
@@ -71,7 +60,7 @@ function TokenPicker({
       </select>
       {value === "__custom__" && (
         <input
-          className="field mt-2 font-mono text-xs"
+          className="field num mt-2 text-[12px]"
           value={custom}
           onChange={(e) => onCustom(e.target.value)}
           placeholder="mint adresi"
@@ -79,6 +68,20 @@ function TokenPicker({
         />
       )}
     </>
+  );
+}
+
+function Step({ n, title, sub }: { n: string; title: string; sub: string }) {
+  return (
+    <div className="mb-4 flex items-baseline gap-3">
+      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">
+        {n}
+      </span>
+      <div>
+        <h2 className="h3">{title}</h2>
+        <p className="text-[12px] text-muted">{sub}</p>
+      </div>
+    </div>
   );
 }
 
@@ -141,10 +144,8 @@ export default function LendPage() {
     return () => clearInterval(id);
   }, []);
 
-  const principalPick =
-    form.principalMint === "__custom__" ? customPrincipal.trim() : form.principalMint;
-  const collateralPick =
-    form.collateralMint === "__custom__" ? customCollateral.trim() : form.collateralMint;
+  const principalPick = form.principalMint === "__custom__" ? customPrincipal.trim() : form.principalMint;
+  const collateralPick = form.collateralMint === "__custom__" ? customCollateral.trim() : form.collateralMint;
 
   const mints = useMintInfo([principalPick, collateralPick, ...markets.map((m) => m.collateral_mint)]);
   useTokenMarket([principalPick, collateralPick, ...markets.map((m) => m.collateral_mint)]);
@@ -161,8 +162,7 @@ export default function LendPage() {
 
   const durationSeconds = toSeconds(form.duration, form.durationUnit);
   // Mirrors the program's own bounds so the form refuses what the chain would.
-  const durationValid =
-    durationSeconds >= MIN_DURATION_SECONDS && durationSeconds <= 365 * 86_400;
+  const durationValid = durationSeconds >= MIN_DURATION_SECONDS && durationSeconds <= 365 * 86_400;
   // A one-minute term only exists on test clusters; do not offer the unit
   // where the program would refuse every value of it.
   const minuteTerms = MIN_DURATION_SECONDS < 3_600;
@@ -183,13 +183,9 @@ export default function LendPage() {
   const collateralUsd = usdValue(collateralRaw, cDec, collateralPick);
   const owedUsd = usdValue(principalRaw + interest, pDec, principalPick);
   const ltv =
-    principalUsd !== undefined && collateralUsd && collateralUsd > 0
-      ? (principalUsd / collateralUsd) * 100
-      : undefined;
+    principalUsd !== undefined && collateralUsd && collateralUsd > 0 ? (principalUsd / collateralUsd) * 100 : undefined;
   const cushion =
-    collateralUsd && collateralUsd > 0 && owedUsd !== undefined
-      ? ((collateralUsd - owedUsd) / collateralUsd) * 100
-      : undefined;
+    collateralUsd && collateralUsd > 0 && owedUsd !== undefined ? ((collateralUsd - owedUsd) / collateralUsd) * 100 : undefined;
 
   const canPublish =
     !busy &&
@@ -227,35 +223,41 @@ export default function LendPage() {
     }
   }
 
+  const row = (label: React.ReactNode, value: React.ReactNode, strong = false) => (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className={strong ? "font-semibold text-fg" : "text-muted"}>{label}</dt>
+      <dd className={`num text-right ${strong ? "font-semibold text-accent" : "font-medium text-fg"}`}>{value}</dd>
+    </div>
+  );
+
   return (
-    <div className="space-y-14">
-      <section>
-        <p className="eyebrow">Borç ver</p>
-        <h1 className="mt-3 font-serif text-5xl leading-[1.02] tracking-tight sm:text-6xl">
-          Paranı <em className="text-accent">faize ver.</em>
-        </h1>
-        <p className="mt-5 max-w-xl text-base leading-relaxed text-fg-2">
-          Riski bir kez, teklifi yazarken fiyatlıyorsun. Sonrasında hiçbir şey takip
-          edilmiyor. Borçlu ödemezse eline nakit değil,{" "}
-          <span className="text-fg">teminat token'ının kendisi</span> geçer — onu satmak
-          senin işin, zararına satman mümkün.
-        </p>
-      </section>
+    <div className="space-y-5">
+      <FeeStrip />
+      <PageTitle title="Teklif aç." marker="Şartları sen koyarsın" />
 
       {apiError && (
-        <div className="rounded-xl border border-bad/40 bg-bad/10 px-4 py-3 text-sm text-bad">
-          {apiError}
-        </div>
+        <div className="rounded-field border border-bad/20 bg-bad-soft px-4 py-3 text-[13px] text-bad">{apiError}</div>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="grid items-start gap-5 lg:grid-cols-[1fr_320px]">
         {/* ------------------------------------------------------ form */}
-        <div className="space-y-5">
-          <section className="panel p-5 sm:p-6">
-            <h2 className="mb-5 flex items-baseline gap-3 text-base font-semibold">
-              <span className="num text-xs text-muted">01</span> Ne veriyorsun
-            </h2>
-            <div className="grid gap-5 sm:grid-cols-2">
+        <section className="card">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-b border-line px-5 py-3 text-[12px]">
+            {[
+              ["01", "Ne veriyorsun"],
+              ["02", "Ne istiyorsun"],
+              ["03", "Şartlar"],
+            ].map(([n, t], i) => (
+              <span key={n} className={`inline-flex items-center gap-2 ${i === 0 ? "text-accent" : "text-muted"}`}>
+                <span className="num text-[10px] font-semibold">{n}</span>
+                <span className="font-semibold">{t}</span>
+              </span>
+            ))}
+          </div>
+
+          <div className="p-5">
+            <Step n="1" title="Ne veriyorsun" sub="Borçluya ödeyeceğin token ve toplam tutar." />
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="label" htmlFor="principal">
                   Vereceğin para
@@ -267,44 +269,28 @@ export default function LendPage() {
                   custom={customPrincipal}
                   onCustom={setCustomPrincipal}
                 />
-                <p className="help">Borçluya ödeyeceğin token. Genelde bir stablecoin.</p>
+                <p className="help">Genelde bir stablecoin.</p>
               </div>
               <div>
                 <label className="label" htmlFor="principalTotal">
                   Toplam tutar
                 </label>
-                <input
-                  id="principalTotal"
-                  className="field num"
-                  inputMode="decimal"
-                  value={form.principalTotal}
-                  onChange={set("principalTotal")}
-                />
-                <p className="help">
-                  Teklifi açar açmaz kilitlenir. Birden fazla kişi parça parça çekebilir.
-                </p>
+                <input id="principalTotal" className="field num" inputMode="decimal" value={form.principalTotal} onChange={set("principalTotal")} />
+                <p className="help">Yayınlanınca kilitlenir. Birden fazla kişi parça parça çekebilir.</p>
               </div>
               <div>
                 <label className="label" htmlFor="minDraw">
                   En az çekim
                 </label>
-                <input
-                  id="minDraw"
-                  className="field num"
-                  inputMode="decimal"
-                  value={form.minDraw}
-                  onChange={set("minDraw")}
-                />
+                <input id="minDraw" className="field num" inputMode="decimal" value={form.minDraw} onChange={set("minDraw")} />
                 <p className="help">Çok küçük kredilerle uğraşmamak için alt sınır.</p>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="panel p-5 sm:p-6">
-            <h2 className="mb-5 flex items-baseline gap-3 text-base font-semibold">
-              <span className="num text-xs text-muted">02</span> Karşılığında ne istiyorsun
-            </h2>
-            <div className="grid gap-5 sm:grid-cols-2">
+          <div className="border-t border-line p-5">
+            <Step n="2" title="Karşılığında ne istiyorsun" sub="Ödenmezse eline geçecek olan bu." />
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label" htmlFor="collateral">
                   Kabul edeceğin teminat
@@ -316,62 +302,35 @@ export default function LendPage() {
                   custom={customCollateral}
                   onCustom={setCustomCollateral}
                 />
-                <p className="help">
-                  Ödenmezse bu sana kalır — satabileceğin bir şey olmasına dikkat et.
-                </p>
+                <p className="help">Satabileceğin bir şey olmasına dikkat et.</p>
               </div>
               <div>
                 <label className="label" htmlFor="collateralTotal">
                   Tam çekim için istediğin teminat
                 </label>
-                <input
-                  id="collateralTotal"
-                  className="field num"
-                  inputMode="decimal"
-                  value={form.collateralTotal}
-                  onChange={set("collateralTotal")}
-                />
+                <input id="collateralTotal" className="field num" inputMode="decimal" value={form.collateralTotal} onChange={set("collateralTotal")} />
                 <p className="help">Parça çekimlerde oranlı hesaplanır, hep yukarı yuvarlanır.</p>
               </div>
             </div>
-          </section>
+          </div>
 
-          <section className="panel p-5 sm:p-6">
-            <h2 className="mb-5 flex items-baseline gap-3 text-base font-semibold">
-              <span className="num text-xs text-muted">03</span> Şartlar
-            </h2>
-            <div className="grid gap-5 sm:grid-cols-3">
+          <div className="border-t border-line p-5">
+            <Step n="3" title="Şartlar" sub="Faiz, vade ve teklifin ne kadar açık kalacağı." />
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="label" htmlFor="apr">
                   Yıllık faiz (%)
                 </label>
-                <input
-                  id="apr"
-                  className="field num"
-                  inputMode="decimal"
-                  value={form.apr}
-                  onChange={set("apr")}
-                />
-                <p className="help">Token ne kadar riskliyse o kadar yüksek istemelisin.</p>
+                <input id="apr" className="field num" inputMode="decimal" value={form.apr} onChange={set("apr")} />
+                <p className="help">Token ne kadar riskliyse o kadar yüksek.</p>
               </div>
               <div>
                 <label className="label" htmlFor="duration">
                   Kredi vadesi
                 </label>
                 <div className="flex gap-2">
-                  <input
-                    id="duration"
-                    className="field num min-w-0 flex-1"
-                    inputMode="decimal"
-                    value={form.duration}
-                    onChange={set("duration")}
-                  />
-                  <select
-                    className="field w-28 shrink-0"
-                    value={form.durationUnit}
-                    onChange={setUnit("durationUnit")}
-                    aria-label="Vade birimi"
-                  >
+                  <input id="duration" className="field num min-w-0 flex-1" inputMode="decimal" value={form.duration} onChange={set("duration")} />
+                  <select className="field w-24 shrink-0" value={form.durationUnit} onChange={setUnit("durationUnit")} aria-label="Vade birimi">
                     {minuteTerms && <option value="dakika">dakika</option>}
                     <option value="saat">saat</option>
                     <option value="gun">gün</option>
@@ -379,8 +338,8 @@ export default function LendPage() {
                 </div>
                 <p className={`help ${durationValid ? "" : "!text-bad"}`}>
                   {durationValid
-                    ? "Paran bu süre boyunca kilitli kalır, erken çıkamazsın."
-                    : `Vade en az ${formatDuration(MIN_DURATION_SECONDS)}, en çok 365 gün olabilir.`}
+                    ? "Paran bu süre kilitli kalır."
+                    : `En az ${formatDuration(MIN_DURATION_SECONDS)}, en çok 365 gün.`}
                 </p>
               </div>
               <div>
@@ -388,133 +347,127 @@ export default function LendPage() {
                   Teklif geçerlilik
                 </label>
                 <div className="flex gap-2">
-                  <input
-                    id="expiry"
-                    className="field num min-w-0 flex-1"
-                    inputMode="decimal"
-                    value={form.expiry}
-                    onChange={set("expiry")}
-                  />
-                  <select
-                    className="field w-28 shrink-0"
-                    value={form.expiryUnit}
-                    onChange={setUnit("expiryUnit")}
-                    aria-label="Geçerlilik birimi"
-                  >
+                  <input id="expiry" className="field num min-w-0 flex-1" inputMode="decimal" value={form.expiry} onChange={set("expiry")} />
+                  <select className="field w-24 shrink-0" value={form.expiryUnit} onChange={setUnit("expiryUnit")} aria-label="Geçerlilik birimi">
                     <option value="dakika">dakika</option>
                     <option value="saat">saat</option>
                     <option value="gun">gün</option>
                   </select>
                 </div>
-                <p className="help">Bu sürede kimse çekmezse teklif kendiliğinden kapanır.</p>
+                <p className="help">Kimse çekmezse teklif kapanır.</p>
               </div>
             </div>
-          </section>
-        </div>
+          </div>
 
-        {/* --------------------------------------------------- summary */}
-        <aside className="panel-raised lg:sticky lg:top-20">
-          <div className="border-b border-edge px-5 py-4">
-            <p className="eyebrow">Teklif özeti</p>
-            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-lg">
+          <div className="border-t border-line p-5">
+            <div className="flex items-end justify-between gap-4 border-b border-line pb-4">
+              <div>
+                <p className="text-[13px] font-semibold">Kilitlenecek tutar</p>
+                <p className="text-[11px] text-muted">Artı ağ ücreti; iptal edersen çekilmeyen kısım döner.</p>
+              </div>
+              <p className="num font-display text-[24px] font-semibold text-fg">
+                {form.principalTotal || "0"} <span className="text-[12px] font-semibold text-muted">{tokenSymbol(principalPick)}</span>
+              </p>
+            </div>
+
+            {sameToken && (
+              <p className="mt-4 rounded-field border border-bad/20 bg-bad-soft px-3.5 py-2.5 text-[12px] text-bad">
+                Verdiğin para ile teminat aynı token. Biri diğerinden farklı olmalı.
+              </p>
+            )}
+            {!sameToken && oddPrincipal && (
+              <p className="mt-4 rounded-field border border-warn/20 bg-warn-soft px-3.5 py-2.5 text-[12px] leading-relaxed text-warn">
+                {tokenSymbol(principalPick)} dağıtıyorsun, stablecoin değil. İki kutuyu karıştırmış olabilir misin?
+              </p>
+            )}
+            <FreezeWarning mint={collateralPick} role="collateral" info={mints[collateralPick]} />
+            <FreezeWarning mint={principalPick} role="principal" info={mints[principalPick]} />
+
+            <button className="btn-block mt-4" disabled={!canPublish} onClick={onCreate}>
+              <span>{busy ? "Cüzdanı onayla…" : publicKey ? "Teklifi yayınla" : "Cüzdanını bağla"}</span>
+              {Icon.arrow}
+            </button>
+            <p className="mt-2.5 text-center text-[11px] text-muted">
+              {publicKey ? "İmzayı kendi cüzdanında verirsin. Biri çekene kadar hiçbir şey olmaz." : "Teklif açmak için sağ üstten cüzdanını bağla."}
+            </p>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------ side */}
+        <aside className="space-y-5 lg:sticky lg:top-5">
+          <div className="card p-5">
+            <p className="eyebrow">Canlı özet</p>
+            <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px]">
               <span className="num font-semibold">{form.principalTotal || "0"}</span>
               <TokenBadge mint={principalPick} />
               <span className="text-muted">→</span>
               <span className="num font-semibold">{form.collateralTotal || "0"}</span>
               <TokenBadge mint={collateralPick} />
             </p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-[12px] text-muted">
               {formatApr(aprBps)} yıllık · {formatDuration(durationSeconds || 0)} vade
             </p>
-          </div>
-
-          <dl className="space-y-3 px-5 py-4 text-sm">
-            <div className="flex items-baseline justify-between gap-3">
-              <dt className="text-muted">Teminat oranı (LTV)</dt>
-              <dd className="num font-medium">
-                {ltv === undefined ? (
-                  <span className="text-muted">fiyat yok</span>
-                ) : ltv < 0.1 ? (
-                  "<%0,1"
-                ) : (
-                  `%${ltv.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}`
+            <dl className="mt-4 space-y-2 border-t border-line pt-4 text-[13px]">
+              {row(
+                "Teminat oranı (LTV)",
+                ltv === undefined ? <span className="text-muted">fiyat yok</span> : ltv < 0.1 ? "<%0,1" : `%${ltv.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}`
+              )}
+              {cushion !== undefined &&
+                row(
+                  "Teminat tamponu",
+                  cushion < 0 ? (
+                    <span className="text-bad">alacak teminatı aşıyor</span>
+                  ) : (
+                    `%${cushion.toLocaleString("tr-TR", { maximumFractionDigits: 0 })} düşebilir`
+                  )
                 )}
-              </dd>
-            </div>
-            {cushion !== undefined && (
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-muted">Teminat tamponu</dt>
-                <dd className={`num font-medium ${cushion < 0 ? "text-bad" : ""}`}>
-                  {cushion < 0
-                    ? "alacak teminatı aşıyor"
-                    : `%${cushion.toLocaleString("tr-TR", { maximumFractionDigits: 0 })} düşebilir`}
-                </dd>
-              </div>
-            )}
-            <div className="border-t border-edge pt-3">
-              <p className="eyebrow mb-2">Tamamı çekilirse</p>
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="text-muted">Faiz geliri</dt>
-                <dd className="num">
-                  {fromRaw(interest, pDec)} {tokenSymbol(principalPick)}
-                </dd>
-              </div>
-              <div className="mt-1.5 flex items-baseline justify-between gap-3">
-                <dt className="text-muted">
-                  Protokol payı{config ? ` (%${config.interestFeeBps / 100})` : ""}
-                </dt>
-                <dd className="num text-muted">
-                  −{fromRaw(protocolCut, pDec)} {tokenSymbol(principalPick)}
-                </dd>
-              </div>
-              <div className="mt-1.5 flex items-baseline justify-between gap-3">
-                <dt className="font-medium">Net getirin</dt>
-                <dd className="num font-semibold text-accent">
+            </dl>
+            <dl className="mt-4 space-y-2 border-t border-line pt-4 text-[13px]">
+              <p className="eyebrow mb-1">Tamamı çekilirse</p>
+              {row("Faiz geliri", `${fromRaw(interest, pDec)} ${tokenSymbol(principalPick)}`)}
+              {row(
+                <>Protokol payı{config ? ` (%${config.interestFeeBps / 100})` : ""}</>,
+                <span className="text-muted">−{fromRaw(protocolCut, pDec)} {tokenSymbol(principalPick)}</span>
+              )}
+              {row(
+                "Net getirin",
+                <>
                   {fromRaw(net, pDec)} {tokenSymbol(principalPick)}
-                  <span className="ml-1.5 font-sans text-xs font-normal text-muted">
+                  <span className="ml-1.5 text-[11px] font-normal text-muted">
                     %{periodYield.toLocaleString("tr-TR", { maximumFractionDigits: 2 })} / dönem
                   </span>
-                </dd>
-              </div>
-            </div>
-          </dl>
-
-          <div className="px-5 pb-1">
-            {sameToken && (
-              <p className="rounded-xl border border-bad/40 bg-bad/10 px-3.5 py-2.5 text-xs text-bad">
-                Verdiğin para ile teminat aynı token. Biri diğerinden farklı olmalı.
-              </p>
-            )}
-            {!sameToken && oddPrincipal && (
-              <p className="rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-2.5 text-xs leading-relaxed text-warn">
-                {tokenSymbol(principalPick)} dağıtıyorsun, stablecoin değil. İki kutuyu
-                karıştırmış olabilir misin?
-              </p>
-            )}
-            <FreezeWarning mint={collateralPick} role="collateral" info={mints[collateralPick]} />
-            <FreezeWarning mint={principalPick} role="principal" info={mints[principalPick]} />
+                </>,
+                true
+              )}
+            </dl>
           </div>
 
-          <div className="space-y-3 px-5 pb-5 pt-4">
-            <button className="btn-primary w-full" disabled={!canPublish} onClick={onCreate}>
-              {busy ? "Cüzdanı onayla…" : "Teklifi yayınla"}
-            </button>
-            <p className="text-xs leading-relaxed text-muted">
-              {publicKey
-                ? "Yayınladığın anda paran kilitlenir. Çekilmeyen kısmı istediğin an iptal edip geri alabilirsin; çekilmiş krediler vadesine kadar sürer."
-                : "Teklif açmak için sağ üstten cüzdanını bağla."}
-            </p>
+          <div>
+            <p className="eyebrow mb-3">Her teklifte</p>
+            <ul className="space-y-3.5">
+              <Feature icon={Icon.split} title="Parça parça çekilebilir">
+                Birden fazla borçlu aynı tekliften çeker; teminat oranlı, yukarı yuvarlanır.
+              </Feature>
+              <Feature icon={Icon.undo} title="İstediğin an iptal">
+                Çekilmemiş kısım anında döner; açılmış krediler vadesine kadar sürer.
+              </Feature>
+              <Feature icon={Icon.coin} title="Nakit değil, token">
+                Ödenmezse teminat token'ının kendisi gelir. Satmak senin işin.
+              </Feature>
+            </ul>
           </div>
+
+          <p className="text-[11px] leading-relaxed text-muted">
+            LTV ve tampon referans fiyatlardan hesaplanır, zincirde fiyat yoktur. Teminat vade boyunca değer
+            kaybedebilir; faiz bunun bedelidir.
+          </p>
         </aside>
       </div>
 
       {/* ------------------------------------------------------- markets */}
-      <section>
-        <SectionHeading
-          title="Piyasalar"
-          sub="Hangi token'a ne kadar faizle borç veriliyor, ne kadarı çekilmiş. Satıra tıkla, formda teminat olsun."
-        />
-        <div className="panel overflow-x-auto">
+      <section className="pt-2">
+        <SectionHeading title="Piyasalar" sub="Hangi token'a ne kadar faizle borç veriliyor. Satıra tıkla, formda teminat olsun." />
+        <div className="card overflow-x-auto">
           <table className="table">
             <thead>
               <tr>
@@ -537,23 +490,19 @@ export default function LendPage() {
               {markets.map((m) => (
                 <tr
                   key={m.collateral_mint}
-                  className="cursor-pointer transition-colors hover:bg-raised/60"
+                  className="cursor-pointer transition-colors hover:bg-page"
                   onClick={() => pickCollateral(m.collateral_mint)}
                   title="Formda teminat olarak kullan"
                 >
                   <td>
                     <TokenBadge mint={m.collateral_mint} size="md" withName />
                   </td>
-                  <td className="r num">
-                    {m.apr_median === null ? "—" : formatApr(Math.round(m.apr_median))}
-                  </td>
+                  <td className="r num">{m.apr_median === null ? "—" : formatApr(Math.round(m.apr_median))}</td>
                   <td className="r num">{fromRaw(m.ask_total, 6)}</td>
                   <td className="r num">{m.active_loans}</td>
                   <td className="r num">%{(m.utilization_bps / 100).toFixed(1).replace(".", ",")}</td>
                   <td className="r num">
-                    {m.default_rate_bps === null
-                      ? "—"
-                      : `%${(m.default_rate_bps / 100).toFixed(0)} (${m.defaulted_count})`}
+                    {m.default_rate_bps === null ? "—" : `%${(m.default_rate_bps / 100).toFixed(0)} (${m.defaulted_count})`}
                   </td>
                 </tr>
               ))}

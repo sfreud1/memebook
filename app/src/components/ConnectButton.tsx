@@ -47,11 +47,7 @@ export function ConnectButton() {
   if (publicKey) {
     const k = publicKey.toBase58();
     return (
-      <button
-        onClick={onClick}
-        title="Bağlantıyı kes"
-        className="btn-ghost btn-sm gap-2 font-mono text-xs"
-      >
+      <button onClick={onClick} title="Bağlantıyı kes" className="btn-pill num">
         <span className="h-1.5 w-1.5 rounded-full bg-good" />
         {k.slice(0, 4)}…{k.slice(-4)}
       </button>
@@ -60,10 +56,21 @@ export function ConnectButton() {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button onClick={onClick} className="btn-primary btn-sm">
-        {connecting ? "Bağlanıyor…" : phantomReady ? "Phantom'a bağlan" : "Phantom kur"}
+      <button onClick={onClick} className="btn-pill">
+        <WalletIcon />
+        {connecting ? "Bağlanıyor…" : phantomReady ? "Cüzdanı bağla" : "Phantom kur"}
       </button>
-      {error && <span className="text-xs text-bad">{error}</span>}
+      {error && <span className="text-[11px] text-bad">{error}</span>}
     </div>
+  );
+}
+
+function WalletIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 8h4.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="10.5" cy="8" r="0.9" fill="currentColor" />
+    </svg>
   );
 }

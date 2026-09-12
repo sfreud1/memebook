@@ -1,28 +1,21 @@
 import type { Metadata } from "next";
-import { Instrument_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, Manrope } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Nav } from "@/components/Nav";
-import { WalletBar } from "@/components/WalletBar";
+import { StatusBar } from "@/components/StatusBar";
 import { Footer } from "@/components/Footer";
 
-const sans = Instrument_Sans({
+const sans = DM_Sans({
   subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
 });
-const serif = Instrument_Serif({
+const display = Manrope({
   subsets: ["latin", "latin-ext"],
-  weight: ["400"],
-  style: ["normal", "italic"],
-  variable: "--font-serif",
-  display: "swap",
-});
-const mono = JetBrains_Mono({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
-  variable: "--font-mono",
+  weight: ["600", "700"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -34,12 +27,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="tr" className={`${sans.variable} ${serif.variable} ${mono.variable}`}>
+    <html lang="tr" className={`${sans.variable} ${display.variable}`}>
       <body className="flex min-h-screen flex-col">
         <Providers>
           <Nav />
-          <WalletBar />
-          <main className="mx-auto w-full max-w-page flex-1 px-5 pb-24 pt-10">{children}</main>
+          <StatusBar />
+          <main className="mx-auto w-full max-w-page flex-1 px-5 pb-20 pt-6">{children}</main>
           <Footer />
         </Providers>
       </body>

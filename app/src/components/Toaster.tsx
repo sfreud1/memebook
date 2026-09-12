@@ -68,6 +68,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const api = useMemo(() => ({ push, update, dismiss }), [push, update, dismiss]);
 
+  const stripe = { success: "bg-good", error: "bg-bad", info: "bg-accent" } as const;
+
   return (
     <Ctx.Provider value={api}>
       {children}
@@ -76,35 +78,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2"
       >
         {toasts.map((t) => (
-          <div
-            key={t.id}
-            className={`pointer-events-auto rounded-xl border px-4 py-3 shadow-lg backdrop-blur ${
-              t.kind === "success"
-                ? "border-good/40 bg-panel/95"
-                : t.kind === "error"
-                  ? "border-bad/40 bg-panel/95"
-                  : "border-accent/40 bg-panel/95"
-            }`}
-          >
+          <div key={t.id} className="pointer-events-auto card relative overflow-hidden py-3 pl-5 pr-4 shadow-pop">
+            <span className={`absolute inset-y-0 left-0 w-1 ${stripe[t.kind]} ${t.kind === "info" ? "animate-pulse" : ""}`} />
             <div className="flex items-start gap-3">
-              <span
-                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                  t.kind === "success"
-                    ? "bg-good"
-                    : t.kind === "error"
-                      ? "bg-bad"
-                      : "animate-pulse bg-accent"
-                }`}
-              />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold">{t.title}</p>
-                {t.body && <p className="mt-0.5 text-xs leading-relaxed text-fg-2">{t.body}</p>}
+                <p className="text-[13px] font-semibold">{t.title}</p>
+                {t.body && <p className="mt-0.5 text-[12px] leading-relaxed text-fg-2">{t.body}</p>}
                 {t.href && (
                   <a
                     href={t.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-1.5 inline-block text-xs text-accent underline decoration-accent/40 underline-offset-4 hover:decoration-accent"
+                    className="mt-1.5 inline-block text-[12px] font-semibold text-accent hover:underline"
                   >
                     {t.hrefLabel ?? "Aç"} ↗
                   </a>

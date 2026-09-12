@@ -23,17 +23,17 @@ export function TokenBadge({
         <img
           src={meta.logo}
           alt=""
-          className={`${SIZES[size]} shrink-0 rounded-full bg-edge object-cover`}
+          className={`${SIZES[size]} shrink-0 rounded-full border border-line bg-page object-cover`}
         />
       ) : (
         <span
-          className={`${SIZES[size]} flex shrink-0 items-center justify-center rounded-full bg-edge text-[9px] font-semibold leading-none text-muted`}
+          className={`${SIZES[size]} flex shrink-0 items-center justify-center rounded-full border border-line bg-page text-[9px] font-semibold leading-none text-muted`}
         >
           {meta.symbol.slice(0, 1)}
         </span>
       )}
-      <span className="font-medium">{meta.symbol}</span>
-      {withName && <span className="text-xs text-muted">{meta.name}</span>}
+      <span className="font-semibold">{meta.symbol}</span>
+      {withName && <span className="text-[12px] text-muted">{meta.name}</span>}
     </span>
   );
 }

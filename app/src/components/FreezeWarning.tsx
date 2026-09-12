@@ -22,7 +22,7 @@ export function FreezeWarning({
   if (!mint || !info?.freezeAuthority) return null;
   const sym = tokenSymbol(mint);
   return (
-    <p className="mt-3 rounded-xl border border-warn/30 bg-warn/10 px-3.5 py-2.5 text-xs leading-relaxed text-warn">
+    <p className="mt-3 rounded-field border border-warn/20 bg-warn-soft px-3.5 py-2.5 text-[12px] leading-relaxed text-warn">
       <span className="font-semibold">{sym} dondurulabilir bir token.</span>{" "}
       {role === "collateral"
         ? "İhraççısı hesapları dondurma yetkisini elinde tutuyor; dondurursa vade sonunda ne geri ödeme ne teminat talebi çalışır — teminat kilitli kalır."

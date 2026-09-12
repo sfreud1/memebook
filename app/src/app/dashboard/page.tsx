@@ -12,7 +12,7 @@ import { useTx } from "@/lib/useTx";
 import { cancelOffer, claimDefault, repayLoan, prepare, type TxPrep } from "@/lib/program";
 import { TokenBadge } from "@/components/TokenBadge";
 import { tokenSymbol, usdValue, formatUsd } from "@/lib/tokens";
-import { EmptyState, Pill, SectionHeading, Stat } from "@/components/ui";
+import { EmptyState, Icon, PageTitle, Pill, SectionHeading, Stat } from "@/components/ui";
 
 export default function DashboardPage() {
   const { publicKey } = useWallet();
@@ -100,11 +100,8 @@ export default function DashboardPage() {
 
   if (!publicKey) {
     return (
-      <div className="space-y-10">
-        <section>
-          <p className="eyebrow">Panelim</p>
-          <h1 className="mt-3 font-serif text-5xl leading-[1.02] tracking-tight">Pozisyonların</h1>
-        </section>
+      <div className="space-y-5">
+        <PageTitle title="Panelim." />
         <EmptyState
           title="Cüzdanını bağla."
           body="Aldığın borçlar, verdiklerin ve açık ilanların burada görünür. Sağ üstten Phantom'a bağlan."
@@ -125,27 +122,27 @@ export default function DashboardPage() {
   const decimals = (mint: string, fallback: number) => mints[mint]?.decimals ?? fallback;
 
   return (
-    <div className="space-y-14">
-      <section className="flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <p className="eyebrow">Panelim</p>
-          <h1 className="mt-3 font-serif text-5xl leading-[1.02] tracking-tight">Pozisyonların</h1>
+    <div className="space-y-5">
+      <PageTitle title="Panelim." marker={shortKey(publicKey.toBase58())} />
+
+      <div className="card grid grid-cols-3 divide-x divide-line">
+        <div className="px-5 py-4">
+          <Stat label="Açık borç" size="lg">{activeBorrowed.length}</Stat>
         </div>
-        <dl className="grid grid-cols-3 gap-6">
-          <Stat label="Açık borç">{activeBorrowed.length}</Stat>
-          <Stat label="Verdiğin">{activeLent.length}</Stat>
-          <Stat label="İlanın">{offers.length}</Stat>
-        </dl>
-      </section>
+        <div className="px-5 py-4">
+          <Stat label="Verdiğin" size="lg">{activeLent.length}</Stat>
+        </div>
+        <div className="px-5 py-4">
+          <Stat label="İlanın" size="lg">{offers.length}</Stat>
+        </div>
+      </div>
 
       {apiError && (
-        <div className="rounded-xl border border-bad/40 bg-bad/10 px-4 py-3 text-sm text-bad">
-          {apiError}
-        </div>
+        <div className="rounded-field border border-bad/20 bg-bad-soft px-4 py-3 text-[13px] text-bad">{apiError}</div>
       )}
 
       {/* ------------------------------------------------------- borrowed */}
-      <section>
+      <section className="pt-3">
         <SectionHeading
           title="Aldığın borçlar"
           sub="Vade dolmadan ödersen teminatın geri gelir. Kaçırırsan teminatın tamamı karşı tarafa geçer."
@@ -167,17 +164,14 @@ export default function DashboardPage() {
             // borrower can see where their position stands.
             const collUsd = usdValue(BigInt(l.collateral_amount), cDec, l.collateral_mint);
             const dueUsd = usdValue(due, pDec, l.principal_mint);
-            const ltv =
-              collUsd && collUsd > 0 && dueUsd !== undefined ? (dueUsd / collUsd) * 100 : undefined;
+            const ltv = collUsd && collUsd > 0 && dueUsd !== undefined ? (dueUsd / collUsd) * 100 : undefined;
             const underwater = ltv !== undefined && ltv >= 100;
             return (
-              <article key={l.pubkey} className="panel overflow-hidden">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-edge bg-raised/50 px-5 py-3">
+              <article key={l.pubkey} className="card overflow-hidden">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-5 py-3">
                   <Pill tone={late ? "bad" : "good"}>{late ? "Vade doldu" : "Aktif"}</Pill>
-                  <span className={`num text-sm ${late ? "text-bad" : "text-fg-2"}`}>
-                    {timeLeft(l.maturity_ts)}
-                  </span>
-                  <span className="ml-auto text-xs text-muted">
+                  <span className={`num text-[13px] font-medium ${late ? "text-bad" : "text-fg-2"}`}>{timeLeft(l.maturity_ts)}</span>
+                  <span className="ml-auto text-[12px] text-muted">
                     alacaklı <span className="num text-fg-2">{shortKey(l.lender)}</span>
                   </span>
                 </div>
@@ -187,25 +181,27 @@ export default function DashboardPage() {
                     tone="accent"
                     hint={`${fromRaw(l.principal_amount, pDec)} anapara + ${fromRaw(l.interest_amount, pDec)} faiz`}
                   >
-                    {fromRaw(due, pDec)}{" "}
-                    <span className="text-sm text-muted">{tokenSymbol(l.principal_mint)}</span>
+                    {fromRaw(due, pDec)} <span className="text-[12px] font-medium text-muted">{tokenSymbol(l.principal_mint)}</span>
                   </Stat>
                   <Stat label="Kilitli teminatın" hint={collUsd !== undefined ? formatUsd(collUsd) : undefined}>
                     {fromRaw(l.collateral_amount, cDec)}{" "}
-                    <span className="text-sm text-muted">{tokenSymbol(l.collateral_mint)}</span>
+                    <span className="text-[12px] font-medium text-muted">{tokenSymbol(l.collateral_mint)}</span>
                   </Stat>
-                  <Stat label="Son ödeme" hint={ltv !== undefined ? `LTV %${ltv.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}` : undefined} tone={underwater ? "bad" : "neutral"}>
-                    <span className="text-base">{formatDate(l.maturity_ts)}</span>
+                  <Stat
+                    label="Son ödeme"
+                    tone={underwater ? "bad" : "neutral"}
+                    hint={ltv !== undefined ? `LTV %${ltv.toLocaleString("tr-TR", { maximumFractionDigits: 1 })}` : undefined}
+                  >
+                    <span className="text-[15px]">{formatDate(l.maturity_ts)}</span>
                   </Stat>
                 </div>
                 {underwater && (
-                  <p className="mx-5 mb-4 rounded-xl bg-ink/60 px-3.5 py-2.5 text-xs leading-relaxed text-muted">
-                    Teminatın artık borcundan az değerli. Ödemeyip teminatı bırakmak matematiksel
-                    olarak daha kârlı — karar senin.
+                  <p className="border-t border-line px-5 py-3.5 text-[12px] leading-relaxed text-fg-2">
+                    Teminatın artık borcundan az değerli. Ödemeyip teminatı bırakmak matematiksel olarak daha kârlı — karar senin.
                   </p>
                 )}
-                <div className="flex flex-wrap items-center gap-4 border-t border-edge px-5 py-4">
-                  <p className="min-w-[14rem] flex-1 text-xs leading-relaxed text-muted">
+                <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-4">
+                  <p className="min-w-[14rem] flex-1 text-[12px] leading-relaxed text-muted">
                     {late
                       ? "Vade doldu. Artık ödeme yapamazsın; alacaklı teminatına istediği an el koyabilir."
                       : "Ödeyince teminatın aynı işlemde cüzdanına döner."}
@@ -223,6 +219,7 @@ export default function DashboardPage() {
                     }
                   >
                     {busy === l.pubkey ? "Cüzdanı onayla…" : "Borcu öde"}
+                    {Icon.arrow}
                   </button>
                 </div>
               </article>
@@ -232,17 +229,13 @@ export default function DashboardPage() {
       </section>
 
       {/* ----------------------------------------------------------- lent */}
-      <section>
+      <section className="pt-3">
         <SectionHeading
           title="Verdiğin borçlar"
           sub="Vade dolduğunda karşı taraf ödemediyse teminata el koyabilirsin. Eline nakit değil, teminat token'ının kendisi geçer."
         />
         {activeLent.length === 0 && (
-          <EmptyState
-            title="Verdiğin açık borç yok."
-            body="Biri teklifinden çektiğinde kredi burada görünür."
-            action={{ href: "/lend", label: "Teklif aç" }}
-          />
+          <EmptyState title="Verdiğin açık borç yok." body="Biri teklifinden çektiğinde kredi burada görünür." action={{ href: "/lend", label: "Teklif aç" }} />
         )}
         <div className="space-y-4">
           {activeLent.map((l) => {
@@ -254,23 +247,19 @@ export default function DashboardPage() {
             const owedUsd = usdValue(owed, pDec, l.principal_mint);
             // How much collateral stands behind what is owed. Under 100% the
             // lender is already underwater if the borrower walks.
-            const cover =
-              owedUsd && owedUsd > 0 && collUsd !== undefined ? (collUsd / owedUsd) * 100 : undefined;
+            const cover = owedUsd && owedUsd > 0 && collUsd !== undefined ? (collUsd / owedUsd) * 100 : undefined;
             return (
-              <article key={l.pubkey} className="panel overflow-hidden">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-edge bg-raised/50 px-5 py-3">
-                  <Pill tone={claimable ? "accent" : "neutral"}>
-                    {claimable ? "Talep edilebilir" : "Sürüyor"}
-                  </Pill>
-                  <span className="num text-sm text-fg-2">{timeLeft(l.maturity_ts)}</span>
-                  <span className="ml-auto text-xs text-muted">
+              <article key={l.pubkey} className="card overflow-hidden">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-5 py-3">
+                  <Pill tone={claimable ? "accent" : "neutral"}>{claimable ? "Talep edilebilir" : "Sürüyor"}</Pill>
+                  <span className="num text-[13px] font-medium text-fg-2">{timeLeft(l.maturity_ts)}</span>
+                  <span className="ml-auto text-[12px] text-muted">
                     borçlu <span className="num text-fg-2">{shortKey(l.borrower)}</span>
                   </span>
                 </div>
                 <div className="grid gap-5 px-5 py-5 sm:grid-cols-3">
                   <Stat label="Alacağın" hint={`${fromRaw(l.principal_amount, pDec)} anapara + ${fromRaw(l.interest_amount, pDec)} faiz`}>
-                    {fromRaw(owed, pDec)}{" "}
-                    <span className="text-sm text-muted">{tokenSymbol(l.principal_mint)}</span>
+                    {fromRaw(owed, pDec)} <span className="text-[12px] font-medium text-muted">{tokenSymbol(l.principal_mint)}</span>
                   </Stat>
                   <Stat
                     label="Tuttuğun teminat"
@@ -282,20 +271,20 @@ export default function DashboardPage() {
                     }
                   >
                     {fromRaw(l.collateral_amount, cDec)}{" "}
-                    <span className="text-sm text-muted">{tokenSymbol(l.collateral_mint)}</span>
+                    <span className="text-[12px] font-medium text-muted">{tokenSymbol(l.collateral_mint)}</span>
                   </Stat>
                   <Stat label="Vade">
-                    <span className="text-base">{formatDate(l.maturity_ts)}</span>
+                    <span className="text-[15px]">{formatDate(l.maturity_ts)}</span>
                   </Stat>
                 </div>
-                <div className="flex flex-wrap items-center gap-4 border-t border-edge px-5 py-4">
-                  <p className="min-w-[14rem] flex-1 text-xs leading-relaxed text-muted">
+                <div className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-4">
+                  <p className="min-w-[14rem] flex-1 text-[12px] leading-relaxed text-muted">
                     {claimable
                       ? "Vade doldu ve ödenmedi — teminata el koyabilirsin. Küçük bir protokol payı düşülür."
                       : "Vade dolana kadar beklemekten başka yapacak bir şey yok; borçlu erken ödeyebilir."}
                   </p>
                   <button
-                    className={`${claimable ? "btn-primary" : "btn-ghost"} shrink-0`}
+                    className={`${claimable ? "btn-primary" : "btn-pill"} shrink-0`}
                     disabled={busy !== null || !claimable}
                     onClick={() =>
                       run(
@@ -316,14 +305,9 @@ export default function DashboardPage() {
       </section>
 
       {/* --------------------------------------------------------- offers */}
-      <section>
-        <SectionHeading
-          title="Açtığın ilanlar"
-          sub="İptal edersen sadece henüz çekilmemiş kısım geri döner. Çekilmiş krediler etkilenmez."
-        />
-        {offers.length === 0 && (
-          <EmptyState title="Açık ilanın yok." action={{ href: "/lend", label: "Teklif aç" }} />
-        )}
+      <section className="pt-3">
+        <SectionHeading title="Açtığın ilanlar" sub="İptal edersen sadece henüz çekilmemiş kısım geri döner. Çekilmiş krediler etkilenmez." />
+        {offers.length === 0 && <EmptyState title="Açık ilanın yok." action={{ href: "/lend", label: "Teklif aç" }} />}
         <div className="space-y-3">
           {offers.map((o) => {
             const pDec = decimals(o.principal_mint, 6);
@@ -331,33 +315,30 @@ export default function DashboardPage() {
             const left = BigInt(o.principal_available);
             const drawnPct = total > 0n ? Number(((total - left) * 100n) / total) : 0;
             return (
-              <article key={o.pubkey} className="panel flex flex-wrap items-center gap-5 px-5 py-4">
+              <article key={o.pubkey} className="card flex flex-wrap items-center gap-5 px-5 py-4">
                 <div className="min-w-[16rem] flex-1">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
                     <span className="num font-semibold">
                       {fromRaw(left, pDec)} / {fromRaw(total, pDec)}
                     </span>
                     <TokenBadge mint={o.principal_mint} />
                     <span className="text-muted">·</span>
-                    <TokenBadge mint={o.collateral_mint} /> <span className="text-xs text-muted">teminatına</span>
+                    <TokenBadge mint={o.collateral_mint} /> <span className="text-[12px] text-muted">teminatına</span>
                   </div>
-                  <div className="mt-2 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-edge">
+                  <div className="mt-2 h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-page">
                     <div className="h-full rounded-full bg-accent" style={{ width: `${drawnPct}%` }} />
                   </div>
-                  <div className="mt-1.5 text-xs text-muted">
-                    %{drawnPct} çekildi · {formatApr(o.apr_bps)} · {formatDuration(o.duration_seconds)} ·{" "}
-                    {o.loans_opened} kredi · {formatDate(o.expiry_ts)} tarihine kadar geçerli
+                  <div className="mt-1.5 text-[12px] text-muted">
+                    %{drawnPct} çekildi · {formatApr(o.apr_bps)} · {formatDuration(o.duration_seconds)} · {o.loans_opened} kredi ·{" "}
+                    {formatDate(o.expiry_ts)} tarihine kadar geçerli
                   </div>
                 </div>
                 <button
-                  className="btn-danger btn-sm shrink-0"
+                  className="btn-danger shrink-0"
                   disabled={busy !== null}
                   onClick={() =>
-                    run(
-                      o.pubkey,
-                      "İptal için cüzdanda onay bekleniyor…",
-                      "İlan iptal edildi, kalan paran döndü.",
-                      () => cancelOffer(program!, publicKey, o)
+                    run(o.pubkey, "İptal için cüzdanda onay bekleniyor…", "İlan iptal edildi, kalan paran döndü.", () =>
+                      cancelOffer(program!, publicKey, o)
                     )
                   }
                 >
@@ -371,9 +352,9 @@ export default function DashboardPage() {
 
       {/* -------------------------------------------------------- history */}
       {history.length > 0 && (
-        <section>
+        <section className="pt-3">
           <SectionHeading title="Geçmiş" sub="Kapanmış krediler — ödenenler ve temerrüde düşenler." />
-          <div className="panel overflow-x-auto">
+          <div className="card overflow-x-auto">
             <table className="table">
               <thead>
                 <tr>
@@ -390,16 +371,14 @@ export default function DashboardPage() {
                     <td className="text-muted">{role}</td>
                     <td className="num">
                       {fromRaw(l.principal_amount, decimals(l.principal_mint, 6))}{" "}
-                      <span className="font-sans text-muted">{tokenSymbol(l.principal_mint)}</span>
+                      <span className="text-muted">{tokenSymbol(l.principal_mint)}</span>
                     </td>
                     <td className="num">
                       {fromRaw(l.collateral_amount, decimals(l.collateral_mint, 0))}{" "}
-                      <span className="font-sans text-muted">{tokenSymbol(l.collateral_mint)}</span>
+                      <span className="text-muted">{tokenSymbol(l.collateral_mint)}</span>
                     </td>
                     <td>
-                      <Pill tone={l.status === "repaid" ? "good" : "bad"}>
-                        {l.status === "repaid" ? "Ödendi" : "Temerrüt"}
-                      </Pill>
+                      <Pill tone={l.status === "repaid" ? "good" : "bad"}>{l.status === "repaid" ? "Ödendi" : "Temerrüt"}</Pill>
                     </td>
                     <td className="r num">{formatDate(l.maturity_ts)}</td>
                   </tr>

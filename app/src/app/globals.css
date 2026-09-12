@@ -2,52 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root { color-scheme: light; }
 
-html { background: #0e0f12; }
+html { background: #f5f7fa; }
 body {
-  @apply bg-ink font-sans text-fg antialiased;
+  @apply bg-page font-sans text-[13px] text-fg antialiased;
+  font-feature-settings: "tnum", "ss01";
 }
-::selection { background: rgba(244, 195, 90, 0.3); }
+::selection { background: rgba(53, 100, 220, 0.16); }
 
 @layer components {
-  .panel { @apply rounded-2xl border border-edge bg-panel; }
-  .panel-raised { @apply rounded-2xl border border-edge-strong bg-raised; }
+  .card { @apply rounded-card border border-line bg-card; }
+  .card-pad { @apply card p-5; }
 
   .field {
-    @apply w-full rounded-xl border border-edge bg-ink px-3.5 py-2.5 text-sm text-fg outline-none
-           transition-colors placeholder:text-muted/70 hover:border-edge-strong
-           focus:border-accent/70 focus:ring-2 focus:ring-accent/15;
+    @apply h-11 w-full rounded-field border border-line bg-card px-3.5 text-[13px] text-fg outline-none
+           transition-colors placeholder:text-muted hover:border-line-strong
+           focus:border-accent focus:ring-4 focus:ring-accent/10;
   }
-  .field-lg { @apply field py-3 font-mono text-2xl font-medium tabular-nums; }
-  .label {
-    @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.12em] text-muted;
-  }
-  .help { @apply mt-1.5 text-xs leading-relaxed text-muted; }
-  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted; }
+  .field-lg { @apply field h-[52px] text-xl font-semibold; }
+  textarea.field { @apply h-auto py-3; }
+  .label { @apply mb-1.5 block text-[12px] font-medium text-fg; }
+  .label-opt { @apply font-normal text-muted; }
+  .help { @apply mt-1.5 text-[11px] leading-relaxed text-muted; }
+  .eyebrow { @apply text-[10px] font-semibold uppercase tracking-[0.16em] text-muted; }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
-           transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50
-           disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center justify-center gap-2 rounded-btn px-4 py-2.5 text-[13px] font-bold
+           transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-accent/20
+           disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .btn-primary { @apply btn bg-accent text-accent-ink hover:brightness-110 active:brightness-95; }
-  .btn-ghost { @apply btn border border-edge-strong bg-transparent text-fg hover:border-muted hover:bg-raised; }
-  .btn-danger { @apply btn border border-bad/40 bg-transparent text-bad hover:bg-bad/10; }
-  .btn-sm { @apply px-3 py-1.5 text-xs; }
+  .btn-primary { @apply btn bg-accent text-white shadow-btn hover:bg-accent-hover; }
+  .btn-block { @apply btn-primary w-full justify-between px-5 py-3.5; }
+  .btn-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-[12px] font-semibold
+           text-fg transition-colors hover:border-line-strong hover:bg-page
+           disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-danger { @apply btn border border-bad/30 bg-card text-bad hover:bg-bad-soft; }
+
+  .tab { @apply rounded-full px-3.5 py-1.5 text-[13px] font-semibold text-fg-2 transition-colors hover:bg-page; }
+  .tab-active { @apply bg-accent-soft text-accent hover:bg-accent-soft; }
 
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-full border border-edge px-2.5 py-1 text-xs
-           text-fg-2 transition-colors hover:border-edge-strong hover:text-fg;
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-3 py-1 text-[12px]
+           font-medium text-fg-2 transition-colors hover:border-line-strong;
   }
-  .chip-active { @apply border-accent/60 bg-accent/10 text-accent hover:border-accent/60 hover:text-accent; }
+  .chip-active { @apply border-accent/40 bg-accent-soft text-accent hover:border-accent/40; }
 
-  .num { @apply font-mono tabular-nums; }
+  .num { @apply tabular-nums; }
 
-  .table { @apply w-full text-sm; }
+  .table { @apply w-full text-[13px]; }
   .table th {
-    @apply px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
+    @apply px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-[0.16em] text-muted;
   }
-  .table td { @apply border-t border-edge px-4 py-3 align-middle; }
+  .table td { @apply border-t border-line px-4 py-3 align-middle; }
   .table .r { @apply text-right; }
+
+  .h1 { @apply font-display text-[26px] font-semibold tracking-[-0.8px] text-fg; }
+  .h2 { @apply font-display text-[20px] font-semibold tracking-[-0.5px] text-fg; }
+  .h3 { @apply text-[15px] font-semibold text-fg; }
 }
