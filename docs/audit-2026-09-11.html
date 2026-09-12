@@ -524,9 +524,10 @@
   <article class="risk">
     <div class="id">R-01</div>
     <div>
-      <div class="head"><span class="chip sev sev-critical">Kritik</span><span class="chip st-open">Açık · mainnet öncesi</span>
+      <div class="head"><span class="chip sev sev-critical">Kritik</span><span class="chip st-fixed">Devnet'te kapatıldı</span><span class="chip st-open">Mainnet'te tekrar</span>
         <h3>Upgrade authority tek bir cüzdanda</h3></div>
-      <p>Programı yükseltebilen anahtar her şeyi değiştirebilir — ücret tavanları dahil. Bu anahtar tek bir Phantom cüzdanında durduğu sürece protokolün güvenliği o cüzdanın güvenliği kadardır ve bu denetimin bir anlamı kalmaz. Squads multisig (örn. 2/3) şart; <code>Config.admin</code> de aynı multisig'e taşınmalı.</p>
+      <p>Programı yükseltebilen anahtar her şeyi değiştirebilir — ücret tavanları dahil. Bu anahtar tek bir Phantom cüzdanında durduğu sürece protokolün güvenliği o cüzdanın güvenliği kadardır ve bu denetimin bir anlamı kalmaz.</p>
+      <p><strong>12 Eylül:</strong> devnet'te upgrade authority ve <code>Config.admin</code> 2/2 Squads kasasına (<span class="mono">A7yJ5GxB…EFtTUMFP</span>, Squad <span class="mono">Ecd8Zk9u…pRF3VoT</span>) taşındı; admin devri <code>propose_admin</code> → multisig'den <code>accept_admin</code> ile yapıldı. İki üye anahtarı da aynı Phantom'da olduğu için bu, mekanizmanın provasıdır, güvenlik kazanımı değil. Mainnet'te Squads v4 ve aynı cihazda durmayan ikinci bir anahtarla (donanım cüzdanı ya da ikinci kişi) yeniden kurulmalı.</p>
     </div>
   </article>
 
@@ -620,7 +621,7 @@
   <h2>Mainnet öncesi yapılacaklar</h2>
   <p class="prose">Sırayla. İlk üçü yapılmadan gerçek para konulmamalı.</p>
   <ol class="steps">
-    <li><div><b>Squads multisig</b><small>Upgrade authority ve <code>Config.admin</code> aynı multisig'e. Tek cüzdan mainnet'te kabul edilemez (R-01).</small></div></li>
+    <li><div><b>Squads multisig (mainnet'te v4 ile yeniden)</b><small>Upgrade authority ve <code>Config.admin</code> aynı multisig'e; ikinci anahtar aynı cihazda olmasın. Devnet provası yapıldı (R-01).</small></div></li>
     <li><div><b>Sabitleri mainnet'e ayarla</b><small><code>MIN_DURATION_SECONDS</code> ≥ 3 600 (R-04). Düzen değişmiyor, yalnızca kural.</small></div></li>
     <li><div><b>Düzeni dondur</b><small>Bu commit'ten sonra <code>Config</code>/<code>Offer</code>/<code>Loan</code>'a alan eklenmez; gerekirse migration instruction'ı ile (R-03).</small></div></li>
     <li><div><b>Devnet'i yeniden deploy et ve tam turu koş</b><small>Yeni düzen için ~2,2 SOL gerekiyor; cüzdanda 1,35 var. Eski hesaplar atıl, <code>scripts/reset.ts</code> ile temiz defter kurulur. Teklif → çekim → ödeme → temerrüt → talep, gerçek cüzdanlarla.</small></div></li>

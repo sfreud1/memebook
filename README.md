@@ -198,6 +198,31 @@ FUZZ_ITERATIONS=50000 FUZZ_FLOWS=100 trident fuzz run fuzz_0
 A failure prints the master seed; `trident fuzz debug fuzz_0 <SEED>` replays
 that exact run.
 
+## Keys on devnet
+
+Both keys that can change the protocol sit behind a 2-of-2 Squads multisig.
+It is a Squads **v3** multisig, because devnet.squads.so is the only Squads
+app that runs on devnet — and it is being decommissioned on 1 October 2026.
+Mainnet will be set up again with v4 at app.squads.so.
+
+| | Address |
+|---|---|
+| Squad (multisig account) | `Ecd8Zk9ura7BNCK6rtApNtHs8B6svCathJxiipRF3VoT` |
+| Vault — program upgrade authority **and** `Config.admin` | `A7yJ5GxBubFqXFNPtrSboXvL1L9PBaPkJGskEFtTUMFP` |
+| Members | `HKcahG2r…dY7M` (Phantom), `FAEkA2Ky…eE1f` (deploy key) |
+
+What that changes: `solana program deploy` from the deploy key no longer
+works — an upgrade is a Squads program-upgrade transaction (Developers →
+Programs). `set_fees`, `set_paused`, `set_fee_recipient` and `propose_admin`
+need the vault's signature, so they are Squads transactions too (TX Builder).
+The handover itself ran through `scripts/transfer-admin.ts`: `propose`
+(the old admin proposes the vault and opens the `accept_admin` multisig
+transaction), the other member approves in the UI, `execute`.
+
+Both member keys currently live in the same Phantom, so on devnet this is a
+rehearsal of the mechanism, not a security gain. On mainnet the second key
+must be a hardware wallet or another person.
+
 ## Before mainnet: freeze the account layout
 
 Adding a field to `Loan` or `Offer` changes the account size, and the upgraded
@@ -232,7 +257,8 @@ findings, all closed in code — [docs/audit-2026-09-11.html](docs/audit-2026-09
 professional audit. Passing tests and a closed findings list show the
 failures somebody thought to look for, not the ones nobody did.
 
-Known gaps before mainnet: upgrade authority and config admin must be moved to
-a multisig, `MIN_DURATION_SECONDS` should be raised from its 60-second devnet
-floor, and the indexer's per-signature backfill should sit behind a Geyser or
-webhook stream at volume.
+Known gaps before mainnet: the multisig must be recreated on mainnet with
+Squads v4 and a second key that does not live on the same device,
+`MIN_DURATION_SECONDS` should be raised from its 60-second devnet floor, and
+the indexer's per-signature backfill should sit behind a Geyser or webhook
+stream at volume.
